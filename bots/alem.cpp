@@ -819,7 +819,7 @@ int main()
             for (pll coin:coins)
             {
                 ll i = coin.fi, j = coin.se;
-                if (weight[i][j] != mx)
+                if (cost[i][j] != mx)
                     continue;
                 q[START].push({i, j});
                 d[START][i][j] = 0;
