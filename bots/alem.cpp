@@ -363,6 +363,7 @@ void go_to_dagger()
 }
 void go_kill()
 {
+    
     if (d[MONSTERS][px][py] >= 300 - tick)
         return;
     if (ans == STAY && has_dagger && dagger_left > 3 && go_dagger)
