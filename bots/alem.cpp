@@ -27,6 +27,7 @@ typedef pair<ll,ll> pll;
 typedef pair<pll,ll> plll;
 typedef pair<double,double> pdd;
 const ll N = 21, K = 7, US = 0, ENEMY = 1, COINS = 2, MONSTERS = 3, DAGGERS = 4, BONUSES = 5, START = 6;
+double DEC_PW = 1.9;
 const ll RIGHT = 0, DOWN = 1, LEFT = 2, UP = 3, STAY = 4;
 ll n = 11, m = 13, px, py, ex, ey, x, y, d[K][N][N], ans, neighbors[N][N], player_id, tick, safe_column[N];
 ll dx[5] = {0, 1, 0, -1, 0}, dy[5] = {1, 0, -1, 0, 0}, ord[5];
@@ -400,7 +401,7 @@ void go_to_coin()
         return;
     }
     if(player_id <= 2) {
-        for (ll j = 0; j < 4; j++) {
+        for (ll j = 0; j <= 4; j++) {
             ll i = ord[j];
             x = px + dx[i];
             y = py + dy[i];
@@ -529,7 +530,7 @@ inline void clean_costs() {
 
     for(int i = 0; i < n; ++i)
         for(int j =0 ; j < m; ++j)
-           cost[i][j] = 0;
+            cost[i][j] = 0;
 }
 inline void make_costs(int x, int y) {
     queue<pair<int, int > > mq;
@@ -552,7 +553,31 @@ inline void make_costs(int x, int y) {
     }
     for(int i = 0; i < n; ++i)
         for(int j = 0; j < m; ++j) {
-            if(dc[i][j] < int(1e9)) cost[i][j] += pow(1.8, -dc[i][j]);
+            if(dc[i][j] < int(1e9)) cost[i][j] += pow(DEC_PW, -dc[i][j]);
+        }
+}
+inline void unmake(int x, int y) {
+    queue<pair<int, int > > mq;
+    mq.push( {x, y } );
+    for(int i = 0; i < n; ++i)
+        for(int j =0 ; j < m; ++j)
+            dc[i][j] = 1e9;
+    dc[x][y] = 0;
+    while(!mq.empty()) {
+        int x = mq.front().first;
+        int y = mq.front().second;
+        mq.pop();
+        for (ll i = 0; i < 4; i++)
+        {
+            int tx = x + dx[i];
+            int ty = y + dy[i];
+            if (in_box(tx, ty) && c[tx][ty] != '!')
+                if (dc[tx][ty] > dc[x][y] + 1) dc[tx][ty] = dc[x][y] + 1, mq.push({tx,ty});
+        }
+    }
+    for(int i = 0; i < n; ++i)
+        for(int j = 0; j < m; ++j) {
+            if(dc[i][j] < int(1e9)) cost[i][j] -= pow(DEC_PW, -dc[i][j]);
         }
 }
 int main()
@@ -566,6 +591,9 @@ int main()
     {
         cin >> m >> n >> player_id >> tick;
         cerr << n << " " << m << " " << player_id << " " << tick << endl;
+        // if(player_id == 2) {
+        DEC_PW = 1.6;
+        // } else DEC_PW = 1.8;
         block_monsters = 1;
         clean_costs();
         // read map
@@ -826,6 +854,13 @@ int main()
             }
             bfs(START);
         }
+//        if(player_id == 2) {
+//            for (auto &x : monsters) {
+//                unmake(x.first, x.second);
+//            }
+//            unmake(ex, ey);
+//        }
+
 
         // 4 - stay
         ans = STAY;
