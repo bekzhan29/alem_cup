@@ -675,28 +675,7 @@ int main()
                 }
             }
         }
-        if (player_id <= 2) {
-            int cx = n / 2;
-            int cy = m / 2;
-            cur_mid = 0;
 
-            for(ll i = cx - 1; i <= cx + 1; ++i) {
-                for(ll j = cy - 1; j <= cy + 1; ++j) {
-                    if (c[i][j] == '#') {
-                        ++cur_mid;
-                    }
-                }
-            }
-            if(cnt_coins > cur_mid + 2 && mid_coins <= 4 && monsters.size() > 0 && map_hash.second != 8424678 && map_hash.second != 8425198 && map_hash.second != 4785316 && map_hash.second != 10258434) {
-                for(ll i = cx - 1; i <= cx + 1; ++i) {
-                    for(ll j = cy - 1; j <= cy + 1; ++j) {
-                        if (c[i][j] == '#') {
-                            coins.erase(find(coins.begin(), coins.end(), make_pair(i, j)));
-                        }
-                    }
-                }
-            }
-        }
         if (!hash_to_id.count(map_hash))
         {
             hash_to_id[map_hash] = ++cnt_maps;
@@ -849,6 +828,30 @@ int main()
                 make_costs(i, j);
             }
         }
+
+        if (player_id <= 2) {
+            int cx = n / 2;
+            int cy = m / 2;
+            cur_mid = 0;
+
+            for(ll i = cx - 1; i <= cx + 1; ++i) {
+                for(ll j = cy - 1; j <= cy + 1; ++j) {
+                    if (c[i][j] == '#') {
+                        ++cur_mid;
+                    }
+                }
+            }
+            if(cnt_coins > cur_mid + 2 && mid_coins <= 4 && monsters.size() > 0 && map_hash.second != 8424678 && map_hash.second != 8425198 && map_hash.second != 4785316 && map_hash.second != 10258434) {
+                for(ll i = cx - 1; i <= cx + 1; ++i) {
+                    for(ll j = cy - 1; j <= cy + 1; ++j) {
+                        if(safe_cells[map_id][i][j]) continue;
+                        if (c[i][j] == '#') {
+                            coins.erase(find(coins.begin(), coins.end(), make_pair(i, j)));
+                        }
+                    }
+                }
+            }
+        }
         if (q[COINS].empty())
             for (pll coin:coins)
             {
@@ -858,6 +861,7 @@ int main()
                 q[COINS].push({i, j});
                 make_costs(i, j);
             }
+
 
         // good coins
         bfs(COINS, true);
@@ -873,6 +877,8 @@ int main()
 
         // safe cells
         bfs(SAFE);
+
+
 
         // start map
         if (tick == 1)
