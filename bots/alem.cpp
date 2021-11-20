@@ -300,7 +300,7 @@ bool Position::is_safe(Position nxt) {
 }
 
 ll Position::get_score() {
-    return monster_bfs.get(*this) * (-10000) - bonus_bfs.get(*this) * (-100) - coin_bfs.get(*this);
+    return monster_bfs.get(*this) * (-10000) - this->move_cells().size() * (-1000) - bonus_bfs.get(*this) * (-100) - coin_bfs.get(*this);
 }
 
 
@@ -388,6 +388,7 @@ namespace SmartMover {
                     best_move = nxt;
                     is_found_move = true;
                     direction = player.get_direction(best_move);
+                    cerr << " Running away to safe " << ' ' << player.x << ' ' << player.y << ' ' << best_move.x << ' ' << best_move.y << endl;
                 }
             }
         }
@@ -407,13 +408,10 @@ namespace SmartMover {
         go_dagger =  !enemy_player.is_alive() || (Grid::tick - player.last_coin > 35 && player.score - 3 <= enemy_player.score)
                                 || (coin_bfs.units.size() <= 4 && player.score > enemy_player.score && Entities::monsters.size());
 
-        go_to_something(bonus_bfs, !bonus_bfs.units.empty() && player.bonus_left <= 5);
-        cerr<<is_found_move<<' ' <<"BONUSE"<<endl;
-        go_to_something(dagger_bfs, go_dagger && !is_found_move && !coin_bfs.units.empty() && !Entities::daggers.empty());
-        cerr<<is_found_move<<' ' <<"DAGGER"<<endl;
+        go_to_something(dagger_bfs, !Entities::monsters.empty() && go_dagger && !is_found_move && !coin_bfs.units.empty() && !Entities::daggers.empty());
         go_kill();
-        cerr<<is_found_move<<' ' <<"KILL"<<endl;
-        go_to_best_pos();
+        go_to_something(bonus_bfs, !is_found_move && !bonus_bfs.units.empty() && player.bonus_left <= 5);
+       go_to_best_pos();
         go_to_something(coin_bfs, true);
         cerr<<is_found_move<<' ' <<"COIN"<<endl;
 
@@ -439,25 +437,29 @@ int main()
         monster_bfs.bfs(Entities::monsters);
         my_bfs.bfs(Entities::me);
         enemy_bfs.bfs(Entities::enemy);
-        if(Grid::tick == 1) {
+        if (Grid::tick == 1) {
             start_bfs.bfs(Entities::coins);
         }
-        for(int i =0 ; i < Grid::n; ++i)
-            for(int j = 0; j < Grid::m; ++j) {
-                if(monster_bfs.get(Position(i,j)) <= 1) Grid::c[i][j] = '!';
+        for (int i = 0; i < Grid::n; ++i)
+            for (int j = 0; j < Grid::m; ++j) {
+                if (monster_bfs.get(Position(i, j)) <= 1) Grid::c[i][j] = '!';
             }
         auto coins = vector<Position>();
-        for(auto &coin : Entities::coins) {
-            if(my_bfs.get(coin) <= enemy_bfs.get(coin) || Entities::coins.size() <= 4 && player.score < enemy_player.score + 1) {
+        for (auto &coin : Entities::coins) {
+            if (my_bfs.get(coin) <= enemy_bfs.get(coin)) {
                 coins.push_back(coin);
             }
         }
+        if (coins.empty())
+            for (auto &coin : Entities::coins) {
+                coins.push_back(coin);
+            }
 
         coin_bfs.bfs(coins);
 
         auto bonuses = vector<Position>();
-        for(auto &bonus : Entities::bonuses) {
-            if(my_bfs.get(bonus) <= enemy_bfs.get(bonus)) {
+        for (auto &bonus : Entities::bonuses) {
+            if (my_bfs.get(bonus) <= enemy_bfs.get(bonus)) {
                 bonuses.push_back(bonus);
             }
         }
