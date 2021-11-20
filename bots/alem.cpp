@@ -16,6 +16,8 @@ namespace Grid {
     char lc[N][N];
     ll cnt_coins;
     ll last_coins;
+    int bad[N][N];
+
 
     inline void read() {
         cin >> m >> n >> player_id >> tick;
@@ -177,14 +179,17 @@ struct BFS {
         distance[pos.x][pos.y] = value;
     }
 
-    inline void bfs(const vector<Position> &starts) {
+    inline void bfs(const vector<Position> &starts, bool is_block_monster = false) {
         units = starts;
         init(starts);
 
         while(!q.empty()) {
             auto pos = q.front();
             q.pop();
+            if(is_block_monster && Grid::bad[pos.x][pos.y]) continue;
             for(auto &nxt : pos.move_cells()) {
+
+                if(is_block_monster && Grid::bad[nxt.x][nxt.y]) continue;
                 if(get(nxt) > get(pos) + 1) {
                     par[nxt] = pos;
                     set(nxt, get(pos) + 1);
@@ -403,6 +408,10 @@ namespace SmartMover {
     }
 
     inline void get_next_move() {
+//        if(Grid::player_id == 1)  {
+//            cout << "stay" << endl;
+//            return;
+//        }
         is_found_move = 0;
         cerr << player.x << ' ' << player.y << endl;
         go_dagger =  !enemy_player.is_alive() || (Grid::tick - player.last_coin > 35 && player.score - 3 <= enemy_player.score)
@@ -440,10 +449,7 @@ int main()
         if (Grid::tick == 1) {
             start_bfs.bfs(Entities::coins);
         }
-        for (int i = 0; i < Grid::n; ++i)
-            for (int j = 0; j < Grid::m; ++j) {
-                if (monster_bfs.get(Position(i, j)) <= 1) Grid::c[i][j] = '!';
-            }
+
         auto coins = vector<Position>();
         for (auto &coin : Entities::coins) {
             if (my_bfs.get(coin) <= enemy_bfs.get(coin)) {
@@ -454,8 +460,12 @@ int main()
             for (auto &coin : Entities::coins) {
                 coins.push_back(coin);
             }
-
-        coin_bfs.bfs(coins);
+        for (int i = 0; i < Grid::n; ++i)
+            for (int j = 0; j < Grid::m; ++j) {
+                if (monster_bfs.get(Position(i, j)) <= 1) Grid::bad[i][j] = 1;
+                else Grid::bad[i][j] = 0;
+            }
+        coin_bfs.bfs(coins, true);
 
         auto bonuses = vector<Position>();
         for (auto &bonus : Entities::bonuses) {
