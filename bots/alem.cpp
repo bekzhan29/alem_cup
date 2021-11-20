@@ -316,7 +316,7 @@ void calculate_weights()
 }
 void go_to_bonus()
 {
-    if (d[COINS][px][py] * 2 <= d[BONUSES][px][py] || d[BONUSES][px][py] >= 300 - tick)
+    if (d[BONUSES][px][py] >= 300 - tick)
         return;
     if (!bonuses.empty())
     {
@@ -345,7 +345,7 @@ void go_to_bonus()
 }
 void go_to_dagger()
 {
-    if (d[COINS][px][py] * 2 <= d[DAGGERS][px][py] || d[DAGGERS][px][py] >= 300 - tick)
+    if (d[DAGGERS][px][py] >= 300 - tick)
         return;
     if (go_dagger && ans == NO_ANSWER && !monsters.empty() && !daggers.empty())
     {
@@ -897,11 +897,12 @@ int main()
         cerr << "Dagger left: " << dagger_left << endl;
 
         go_dagger = 0;
-        if (enemy_alive == 0 || (tick - last_coin > 35 && our_score - 3 <= enemy_score)
-            || (cnt_coins <= 4 && our_score < enemy_score))
+        if (enemy_alive == 0 || (tick - last_coin > 35 && our_score - 3 <= enemy_score)) {
             go_dagger = 1;
-        if (monsters.empty())
+        }
+        if (monsters.empty()) {
             go_dagger = 0;
+        }
 
         // try to go to a bonus
         go_to_bonus();
