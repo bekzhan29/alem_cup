@@ -400,7 +400,7 @@ int dc[N][N];
 
 void go_to_coin()
 {
-    if (ans < STAY)
+    if (ans != NO_ANSWER)
         return;
     if (cnt_coins <= 1 && our_score > enemy_score + 1 && enemy_alive)
     {
@@ -925,13 +925,13 @@ int main()
             last_coin = tick;
         // bot action
         cout << s[ans] << endl;
-        if (!silent_mode) {
-            cerr.precision(3);
-            for (ll i = 0; i < n; i++, cerr << endl)
-                for (ll j = 0; j < m; j++) {
-                    cerr << fixed << cost[i][j] << ' ';
-                }
-        }
+        // if (!silent_mode) {
+        //     cerr.precision(3);
+        //     for (ll i = 0; i < n; i++, cerr << endl)
+        //         for (ll j = 0; j < m; j++) {
+        //             cerr << fixed << cost[i][j] << ' ';
+        //         }
+        // }
 
         for (ll i = 0; i < n; i++)
             for (ll j = 0; j < m; j++)
