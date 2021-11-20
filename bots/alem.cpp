@@ -464,7 +464,6 @@ void run_away()
             if (in_box(x, y) && c[x][y] != '!' && safe_column[y])
             {
                 ans = i;
-                f = 1;
                 if (!silent_mode) {
                     cerr << "Moving towards safe column " << x << " " << y << endl;
                 }
