@@ -60,17 +60,19 @@ public:
         this->x = x;
         this->y = y;
     }
+    void update(Position &pos) {
 
-    Position(string type, ll p_id, ll x, ll y, ll param_1, ll param_2) {
-        this->type = type;
-        this->p_id = p_id;
-        this->x = x;
-        this->y = y;
-        this->param_1 = param_1;
-        this->param_2 = param_2;
+        bonus_left = pos.bonus_left;
+        has_dagger = pos.has_dagger;
+        dagger_left = pos.dagger_left;
+        has_bonus = pos.has_bonus;
+        last_tick = Grid::tick;
+        last_coin = pos.last_coin;
+
         score += ((Grid::lc[x][y] == '#') + (Grid::cnt_coins > Grid::last_coins && Grid::start_c[x][y] == '#')) * (param_2 + 1);
         if(((Grid::lc[x][y] == '#') + (Grid::cnt_coins > Grid::last_coins && Grid::start_c[x][y] == '#')) * (param_2 + 1) > 0) {
             last_coin = Grid::tick;
+        } else {
         }
         if (!has_dagger && param_1)
             dagger_left = 15;
@@ -84,6 +86,15 @@ public:
         bonus_left = max(bonus_left, 0ll);
         has_dagger = param_1;
         has_bonus = param_2;
+    }
+
+    Position(string type, ll p_id, ll x, ll y, ll param_1, ll param_2) {
+        this->type = type;
+        this->p_id = p_id;
+        this->x = x;
+        this->y = y;
+        this->param_1 = param_1;
+        this->param_2 = param_2;
     }
 
     bool inside() {
@@ -256,24 +267,18 @@ namespace Entities {
     }
 
     inline void identify() {
-        if(Grid::tick == 1)
-            SafeCellsGenerator::init();
-
         for(ll i = 0; i < n; ++i) {
             if(units[i].type == "m") {
                 monsters.pb(units[i]);
-                if(Grid::tick == 1) {
-                    SafeCellsGenerator::remove(units[i].y);
-                }
             } else if(units[i].type == "p") {
                 if(units[i].p_id == Grid::player_id) {
+                    units[i].update(player);
                     me.pb(units[i]);
                     player = units[i];
-                    player.last_tick = Grid::tick;
                 } else {
+                    units[i].update(enemy_player);
                     enemy.pb(units[i]);
                     enemy_player = units[i];
-                    enemy_player.last_tick = Grid::tick;
                 }
             }
         }
@@ -293,6 +298,7 @@ namespace Entities {
 }
 
 bool Position::is_safe(Position nxt) {
+    cerr << nxt.x << ' ' << nxt.y << ' ' << SafeCellsGenerator::get(nxt) << endl;
     if(SafeCellsGenerator::get(nxt)) return true;
     auto nxt_moves = nxt.move_cells();
     for(auto after : nxt_moves) {
@@ -305,7 +311,7 @@ bool Position::is_safe(Position nxt) {
 }
 
 ll Position::get_score() {
-    return monster_bfs.get(*this) * (-10000) - this->move_cells().size() * (-1000) - bonus_bfs.get(*this) * (-100) - coin_bfs.get(*this);
+    return monster_bfs.get(*this) * (-10000) + this->move_cells().size() * (-1000) - bonus_bfs.get(*this) * (-100) - coin_bfs.get(*this);
 }
 
 
@@ -347,7 +353,8 @@ namespace SmartMover {
             }
             if(found_better || found_fair) {
                 is_found_move = true;
-                cerr<<bfs.get(best_move) << "next pos is " << ' ' << best_move.x << ' ' << best_move.y << ' '  << player.is_safe(best_move) << ' ' << monster_bfs.get(best_move);
+                cerr << endl;
+                cerr<<bfs.get(best_move) << " next pos is " << ' ' << best_move.x << ' ' << best_move.y << ' '  << player.is_safe(best_move) << ' ' << monster_bfs.get(best_move) << endl;
                 direction = player.get_direction(best_move);
             }
         }
@@ -370,6 +377,7 @@ namespace SmartMover {
     }
 
     inline void go_to_best_pos() {
+        if(is_found_move) return;
         if (Entities::coins.size() <= 1 && player.score > enemy_player.score + 1 && enemy_player.is_alive())
         {
             Position pos = start_bfs.par[player];
@@ -400,9 +408,12 @@ namespace SmartMover {
         if(is_found_move) return;
         for (auto nxt : nxt_cells) {
             if (nxt.get_score() < best_move.get_score() || !is_found_move) {
+
                 best_move = nxt;
                 is_found_move = true;
                 direction = player.get_direction(best_move);
+                cerr << " Running away from monster " << ' ' << player.x << ' ' << player.y << ' ' << best_move.x << ' ' << best_move.y << endl;
+
             }
         }
     }
@@ -414,15 +425,24 @@ namespace SmartMover {
 //        }
         is_found_move = 0;
         cerr << player.x << ' ' << player.y << endl;
+        cerr << player.score << ' ' << enemy_player.score << endl;
+        cerr << "identifying go dagger" << ' ' << !enemy_player.is_alive() << ' ' << (Grid::tick - player.last_coin > 35 && player.score - 3 <= enemy_player.score) << ' ' << (coin_bfs.units.size() <= 4 && player.score < enemy_player.score + 2 && Entities::monsters.size()) << endl;
         go_dagger =  !enemy_player.is_alive() || (Grid::tick - player.last_coin > 35 && player.score - 3 <= enemy_player.score)
-                                || (coin_bfs.units.size() <= 4 && player.score > enemy_player.score && Entities::monsters.size());
-
+                                || (coin_bfs.units.size() <= 4 && player.score < enemy_player.score + 2 && Entities::monsters.size());
+        cerr << "Go dagger is " << go_dagger << endl;
         go_to_something(dagger_bfs, !Entities::monsters.empty() && go_dagger && !is_found_move && !coin_bfs.units.empty() && !Entities::daggers.empty());
+        cerr << "Is Dagger " << is_found_move << endl;
+
         go_kill();
+        cerr << "Is kill " << is_found_move << endl;
         go_to_something(bonus_bfs, !is_found_move && !bonus_bfs.units.empty() && player.bonus_left <= 5);
-       go_to_best_pos();
+        cerr << "Is bonus " << is_found_move << endl;
+
+        go_to_best_pos();
+        cerr << "Is best pos " << is_found_move << endl;
+
         go_to_something(coin_bfs, true);
-        cerr<<is_found_move<<' ' <<"COIN"<<endl;
+        cerr << "Is coin " << is_found_move << endl;
 
         run_away();
 //        for(int i =0 ; i< Grid::n;++i,cerr<<endl)
@@ -434,6 +454,7 @@ namespace SmartMover {
     }
 }
 
+bool lleft, rright;
 
 int main()
 {
@@ -448,6 +469,21 @@ int main()
         enemy_bfs.bfs(Entities::enemy);
         if (Grid::tick == 1) {
             start_bfs.bfs(Entities::coins);
+            for(auto &m: Entities::monsters) {
+                if (m.y < 5 && abs(m.x - 5) <= 2)
+                    lleft = 1;
+                if (m.y> 7 && abs(m.x - 5) <= 2)
+                    rright = 1;
+            }
+
+            SafeCellsGenerator::init();
+            if(lleft && rright) {
+                for (ll j = 0; j < Grid::m; j++)
+                    SafeCellsGenerator::is_safe_column[j] = 0;
+                SafeCellsGenerator::is_safe_column[Grid::m / 2] = 1;
+            } else {
+                for(auto &m: Entities::monsters) SafeCellsGenerator::remove(m.y);
+            }
         }
 
         auto coins = vector<Position>();
