@@ -868,16 +868,16 @@ int main()
         // start map
         if (tick == 1)
         {
-            double mx = 0;
+            ll mx = 0;
             for (pll coin:coins)
             {
                 ll i = coin.fi, j = coin.se;
-                mx = max(mx, cost[i][j]);
+                mx = max(mx, weight[i][j]);
             }
             for (pll coin:coins)
             {
                 ll i = coin.fi, j = coin.se;
-                if (cost[i][j] != mx)
+                if (weight[i][j] != mx)
                     continue;
                 q[START].push({i, j});
                 d[START][i][j] = 0;
