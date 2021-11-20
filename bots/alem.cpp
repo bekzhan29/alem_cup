@@ -26,7 +26,7 @@ typedef long double ld;
 typedef pair<ll,ll> pll;
 typedef pair<pll,ll> plll;
 typedef pair<double,double> pdd;
-const ll N = 21, K = 7, US = 0, ENEMY = 1, COINS = 2, MONSTERS = 3, DAGGERS = 4, BONUSES = 5, START = 6;
+const ll N = 21, K = 8, US = 0, ENEMY = 1, COINS = 2, MONSTERS = 3, DAGGERS = 4, BONUSES = 5, SAFE = 6, START = 7;
 double DEC_PW = 1.9;
 const ll RIGHT = 0, DOWN = 1, LEFT = 2, UP = 3, STAY = 4, NO_ANSWER = -1;
 ll n = 11, m = 13, px, py, ex, ey, x, y, d[K][N][N], ans, neighbors[N][N], player_id, tick, safe_column[N];
@@ -207,7 +207,7 @@ void init_safe_cells()
     init(safe_cells[1], {{3703033829523455, 3700685667086401}, 549755812067});
     cnt_maps++;
     id_to_hash[2] = {{141877870592, 148319537314}, 9766980};
-    init(safe_cells[2], {{3945018726678031, 3944990267473063}, 482103131207});
+    init(safe_cells[2], {{3944984362744847, 3944990267473063}, 482103131207});
     cnt_maps++;
     id_to_hash[3] = {{35257659752448, 35253387052036}, 4785220};
     init(safe_cells[3], {{106614510059519, 35257682019396}, 549755812935});
@@ -228,7 +228,7 @@ void init_safe_cells()
     init(safe_cells[8], {{3944994561915911, 3949445766971391}, 481564949743});
     cnt_maps++;
     id_to_hash[9] = {{321057404256256, 321194978740226}, 8945664};
-    init(safe_cells[9], {{409445943214079, 321199273707586}, 549755805760});
+    init(safe_cells[9], {{391439292825599, 321199273707586}, 549755805760});
     cnt_maps++;
     id_to_hash[10] = {{565198922465280, 565159714619552}, 16794344};
     init(safe_cells[10], {{4068193022771199, 4067658299867361}, 549755813887});
@@ -250,7 +250,7 @@ bool is_safe(int x, int y)
 {
     if (beast_mode && are_you_sure && player_id == 2)
         return (d[MONSTERS][x][y] > 2);
-    if (safe_column[y] || dagger_left > 3)
+    if (safe_cells[map_id][x][y] || dagger_left > 3)
         return 1;
     return is_safe1(x, y);
 }
@@ -316,7 +316,7 @@ void calculate_weights()
 }
 void go_to_bonus()
 {
-    if (d[COINS][px][py] * 2 <= d[BONUSES][px][py] || d[BONUSES][px][py] >= 300 - tick)
+    if (d[BONUSES][px][py] >= 300 - tick)
         return;
     if (!bonuses.empty())
     {
@@ -345,7 +345,7 @@ void go_to_bonus()
 }
 void go_to_dagger()
 {
-    if (d[COINS][px][py] * 2 <= d[DAGGERS][px][py] || d[DAGGERS][px][py] >= 300 - tick)
+    if (d[DAGGERS][px][py] >= 300 - tick)
         return;
     if (go_dagger && ans == NO_ANSWER && !monsters.empty() && !daggers.empty())
     {
@@ -461,7 +461,7 @@ void run_away()
             ll i = ord[j];
             x = px + dx[i];
             y = py + dy[i];
-            if (in_box(x, y) && c[x][y] != '!' && safe_column[y])
+            if (in_box(x, y) && c[x][y] != '!' && safe_cells[map_id][x][y])
             {
                 ans = i;
                 if (!silent_mode) {
@@ -492,7 +492,7 @@ void run_away()
 
     if (ans == NO_ANSWER)
     {
-        ll mx = 0, mx2 = 0, mn3 = INF;
+        ll mx = 0, mn = INF;
         shuffle(ord, ord + 4, rnd);
         for (ll j = 0; j <= 4; j++)
         {
@@ -501,15 +501,13 @@ void run_away()
             y = py + dy[i];
             if (in_box(x, y) && c[x][y] != '!')
                 if(neighbors[x][y] > 1)
-                    if(d[MONSTERS][x][y] > mx || (d[MONSTERS][x][y] == mx && neighbors[x][y] > mx2) ||
-                       (d[MONSTERS][x][y] == mx && neighbors[x][y] == mx2 && border_dist(x, y) < mn3))
+                    if(d[MONSTERS][x][y] > mx || (d[MONSTERS][x][y] == mx && d[SAFE][x][y] < mn))
                     {
                         ans = i;
                         mx = d[MONSTERS][x][y];
-                        mx2 = neighbors[x][y];
-                        mn3 = border_dist(x, y);
+                        mn = d[SAFE][x][y];
                         if (!silent_mode) {
-                            cerr << "Moving away from monster: " << x << " " << y << " " << d[MONSTERS][x][y] << " " << neighbors[x][y] << endl;
+                            cerr << "Moving away from monster: " << x << " " << y << " " << d[MONSTERS][x][y] << " " << d[SAFE][x][y] << endl;
                         }
                     }
         }
@@ -706,6 +704,14 @@ int main()
         }
         map_id = hash_to_id[map_hash];
 
+        for (ll i = 0; i < n; i++)
+            for (ll j = 0; j < m; j++)
+                if (safe_cells[map_id][i][j])
+                {
+                    d[SAFE][i][j] = 0;
+                    q[SAFE].push({i, j});
+                }
+
         print_safe_cells(map_id);
 
         cerr << endl;
@@ -865,6 +871,9 @@ int main()
         // bonuses
         bfs(BONUSES);
 
+        // safe cells
+        bfs(SAFE);
+
         // start map
         if (tick == 1)
         {
@@ -897,11 +906,12 @@ int main()
         cerr << "Dagger left: " << dagger_left << endl;
 
         go_dagger = 0;
-        if (enemy_alive == 0 || (tick - last_coin > 35 && our_score - 3 <= enemy_score)
-            || (cnt_coins <= 4 && our_score < enemy_score))
+        if (enemy_alive == 0 || (tick - last_coin > 35 && our_score - 3 <= enemy_score)) {
             go_dagger = 1;
-        if (monsters.empty())
+        }
+        if (monsters.empty()) {
             go_dagger = 0;
+        }
 
         // try to go to a bonus
         go_to_bonus();
