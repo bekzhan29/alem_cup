@@ -292,7 +292,7 @@ bool Position::is_safe(Position nxt) {
     auto nxt_moves = nxt.move_cells();
     for(auto after : nxt_moves) {
 //        if(SafeCellsGenerator::get(after)) return true;
-        if(monster_bfs.get(after) >= 4) {
+        if(monster_bfs.get(after) >= 4 && (after.x != nxt.x || after.y != nxt.y)) {
             return true;
         }
     }
@@ -332,17 +332,17 @@ namespace SmartMover {
                         if (found_better) {
 
                         } else {
-                            if (monster_bfs.get(nxt) < monster_bfs.get(best_move)) {
-                                best_move = nxt;
-                                found_fair = true;
-                            }
+//                            if (monster_bfs.get(nxt) < monster_bfs.get(best_move)) {
+//                                best_move = nxt;
+//                                found_fair = true;
+//                            }
                         }
                     }
                 }
             }
             if(found_better || found_fair) {
                 is_found_move = true;
-                cerr<<bfs.get(best_move) << "next pos is " << ' ' << best_move.x << ' ' << best_move.y << ' '  << player.is_safe(best_move) << endl;
+                cerr<<bfs.get(best_move) << "next pos is " << ' ' << best_move.x << ' ' << best_move.y << ' '  << player.is_safe(best_move) << ' ' << monster_bfs.get(best_move);
                 direction = player.get_direction(best_move);
             }
         }
@@ -448,8 +448,7 @@ int main()
             }
         auto coins = vector<Position>();
         for(auto &coin : Entities::coins) {
-            cerr << coin.x << ' ' << coin.y << ' ' << my_bfs.get(coin) << ' ' << enemy_bfs.get(coin) << endl;
-            if(my_bfs.get(coin) <= enemy_bfs.get(coin)) {
+            if(my_bfs.get(coin) <= enemy_bfs.get(coin) || Entities::coins.size() <= 4 && player.score < enemy_player.score + 1) {
                 coins.push_back(coin);
             }
         }
