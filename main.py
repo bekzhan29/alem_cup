@@ -145,4 +145,3 @@ for i in range(10000):
 	print(win_from_map, flush=True)
 	if i % 10 == 0:
 		print(diff_from_map, flush=True)
-

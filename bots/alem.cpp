@@ -932,27 +932,27 @@ int main()
             go_dagger = 0;
         }
 
-        if (player_id <= 2)
+        if (map_id == 1 || map_id == 3)
         {
-            // try to go to a bonus
-            go_to_bonus();
-
             // try to go to a dagger
             go_to_dagger();
+
+            // try to go to a bonus
+            go_to_bonus();
         }
         else
         {
-            // try to go to a dagger
-            go_to_dagger();
-
             // try to go to a bonus
             go_to_bonus();
+
+            // try to go to a dagger
+            go_to_dagger();
         }
 
         // try to kill a monster
-        if (!enemy_alive && player_id > 2)
+        if (!enemy_alive && (map_id == 1 || map_id == 3))
             go_kill();
-        else if (player_id <= 2)
+        else if (map_id != 1 && map_id != 3)
             go_kill();
 
         // try to go to a coin

@@ -80,6 +80,15 @@ string tostring(plll a)
 {
     return "{{" + to_string(a.fi.fi) + ", " + to_string(a.fi.se) + "}, " + to_string(a.se) + "}";
 }
+void init_DEC_PW()
+{
+    if (map_id == 4)
+        DEC_PW = 1.2;
+    if (map_id == 5 || map_id == 9)
+        DEC_PW = 1.6;
+    if (map_id >= 6 && map_id <= 8)
+        DEC_PW = 2;
+}
 plll encode(char c[N][N])
 {
     ll h1 = 0, h2 = 0, h3 = 0;
@@ -408,14 +417,21 @@ void go_to_coin()
         x = pr[START][px][py].fi;
         y = pr[START][px][py].se;
         if (in_box(x, y) && c[x][y] != '!' && is_safe(x, y))
+        {
             for (ll i = 0; i < 4; i++)
                 if (px + dx[i] == x && py + dy[i] == y)
                     ans = i;
+        }
+        else if (x == -1 && y == -1 && is_safe(px, py))
+        {
+            cerr << "Pears" << endl;
+            ans = STAY;
+        }
         return;
     }
-    if (map_id == 4)
+    if (map_id >= 4 && map_id <= 9)
     {
-        if (player_id == 2 && d[COINS][px][py] >= 2 && d[COINS][px][py] <=  7 && d[MONSTERS][px][py] >= 4) {
+        if (player_id <= 2) {
             shuffle(ord, ord + 5, rnd);
             for (ll j = 0; j <= 4; j++) {
                 ll i = ord[j];
@@ -548,7 +564,7 @@ void run_away()
 }
 inline void clean_costs() {
     for (int i = 0; i < n; ++i)
-        for (int j = 0 ; j < m; ++j)
+        for (int j = 0; j < m; ++j)
             cost[i][j] = 0;
 }
 inline void make_costs(int x, int y, double multi) {
@@ -676,6 +692,7 @@ int main()
                 id_to_hash[cnt_maps] = map_hash;
             }
             map_id = hash_to_id[map_hash];
+            init_DEC_PW();
             mid_coins = 0;
             for(ll i = cx - 1; i <= cx + 1; ++i) {
                 for (ll j = cy - 1; j <= cy + 1; ++j) {
@@ -915,7 +932,7 @@ int main()
             go_dagger = 0;
         }
 
-        if (player_id == 2)
+        if (player_id != 2)
         {
             // try to go to a bonus
             go_to_bonus();
