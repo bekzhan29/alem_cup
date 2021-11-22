@@ -1,4 +1,5 @@
 import requests
+import sys
 
 bad_cells = {}
 hash_to_map = {}
@@ -14,8 +15,10 @@ def parse_game(link):
 	res = requests.get(url=link).json()
 	return res
 
+
 def get_map(res):
 	return res["initial_state"]["walls"]
+
 
 def init_maps():
 	global id_to_hash
@@ -43,8 +46,9 @@ def init_maps():
 	id_to_hash.append((565198922465280, 565159714619552, 16794344))
 	for i in range(0, cnt_maps):
 		hash_to_id[id_to_hash[i]] = i
-		win_from_map.append({"first": 0, "second" : 0})
+		win_from_map.append({"first": 0, "second": 0})
 		diff_from_map.append({"first": [], "second": []})
+
 
 def get_hash(res):
 	dict = {}
@@ -65,9 +69,9 @@ def get_hash(res):
 	# print(h1, h2, h3)
 	return (h1, h2, h3)
 
+
 win1 = 0
 win2 = 0
-import sys
 def get_score():
 	global win1
 	global win2
@@ -92,22 +96,22 @@ def get_score():
 	url = 'https://cup.alem.school/api/ondemand/send_solution'
 	file = open("main.cpp", "r").read()
 
-	response = requests.post(url, json={"code": file, "lang": "cpp", "mode": "SELF"}, headers = headers)
+	response = requests.post(url, json={"code": file, "lang": "cpp", "mode": "SELF"}, headers=headers)
 	key = response.json()
 
 	# key = "636548a9-97e7-4c15-9097-539340ae3a9d"
 	log_url = f'https://cup.alem.school/api/game/logs/{key}'
 	import time
 	while True:
-		res =requests.get(log_url, headers=headers)
+		res = requests.get(log_url, headers=headers)
 		print(res.json()['finished'], file=sys.stderr, flush=True)
-		if res.json()['finished'] == True:
+		if res.json()['finished'] is True:
 			break
 		time.sleep(1)
 
 	logs_url = f"https://s3.alem.school/storage/gamesessions/{key}.json"
 	res = requests.get(logs_url)
-	score = {"p1": 0, "p2" : 0}
+	score = {"p1": 0, "p2": 0}
 	if res.status_code == 200:
 		frames = res.json()['frames']
 
@@ -130,7 +134,8 @@ def get_score():
 			win_from_map[map]['first'] += 0.5
 			win_from_map[map]['second'] += 0.5
 
-		print(f"{score['p1']}: {score['p2']}", file=sys.stderr, flush=True)
+		print(f"Coins: {score['p1']}: {score['p2']}", file=sys.stderr, flush=True)
+
 
 init_maps()
 for i in range(10000):
