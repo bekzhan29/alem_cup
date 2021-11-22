@@ -27,7 +27,7 @@ typedef pair<ll,ll> pll;
 typedef pair<pll,ll> plll;
 typedef pair<double,double> pdd;
 const ll N = 21, K = 8, US = 0, ENEMY = 1, COINS = 2, MONSTERS = 3, DAGGERS = 4, BONUSES = 5, SAFE = 6, START = 7;
-double DEC_PW = 1.9;
+double DEC_PW =1.2;
 const ll RIGHT = 0, DOWN = 1, LEFT = 2, UP = 3, STAY = 4, NO_ANSWER = -1;
 ll n = 11, m = 13, px, py, ex, ey, x, y, d[K][N][N], ans, neighbors[N][N], player_id, tick, safe_column[N];
 ll dx[5] = {0, 1, 0, -1, 0}, dy[5] = {1, 0, -1, 0, 0}, ord[5];
@@ -39,7 +39,7 @@ queue<pll> q[K];
 char c[N][N], lc[N][N], start_c[N][N];
 ll bad_angle[N][N], near_monster[N][N], weight[N][N];
 string s[5] = {"right", "down", "left", "up", "stay"};
-bool has_dagger, enemy_alive, has_bonus, go_dagger, left_right, lleft, rright;
+bool enemy_alive, go_dagger, left_right, lleft, rright;
 ll last_coin = -1, cnt_maps, last_cnt_maps, map_id;
 plll map_hash;
 map<plll, ll> hash_to_id;
@@ -375,7 +375,7 @@ void go_kill()
 {
     if (d[MONSTERS][px][py] >= 300 - tick)
         return;
-    if (ans == NO_ANSWER && has_dagger && dagger_left > 3 && go_dagger)
+    if (ans == NO_ANSWER && dagger_left > 3 && go_dagger)
     {
         ans = STAY;
         shuffle(ord, ord + 4, rnd);
@@ -404,6 +404,7 @@ void go_to_coin()
         return;
     if (cnt_coins <= 1 && our_score > enemy_score + 1 && enemy_alive)
     {
+//        cerr<<our_score << ' ' << enemy_score <<' ' << enemy_alive << ' ' << cnt_coins << endl;
         x = pr[START][px][py].fi;
         y = pr[START][px][py].se;
         if (in_box(x, y) && c[x][y] != '!' && is_safe(x, y))
@@ -412,20 +413,22 @@ void go_to_coin()
                     ans = i;
         return;
     }
-    // if(player_id <= 2) {
-    //     ans = STAY;
-    //     shuffle(ord, ord + 4, rnd);
-    //     for (ll j = 0; j <= 4; j++) {
-    //         ll i = ord[j];
-    //         x = px + dx[i];
-    //         y = py + dy[i];
-    //         if (in_box(x, y) && c[x][y] != '!' && is_safe(x, y))
-    //             if (cost[x][y] > cost[px + dx[ans]][py + dy[ans]])
-    //                 ans = i;
-    //     }
-    //     if(ans != STAY)
-    //         return;
-    // }
+    if (map_id == 4)
+    {
+        if (player_id == 2 && d[COINS][px][py] >= 2 && d[COINS][px][py] <=  7 && d[MONSTERS][px][py] >= 4) {
+            shuffle(ord, ord + 5, rnd);
+            for (ll j = 0; j <= 4; j++) {
+                ll i = ord[j];
+                x = px + dx[i];
+                y = py + dy[i];
+                if (in_box(x, y) && c[x][y] != '!' && is_safe(x, y))
+                    if (ans == NO_ANSWER || cost[x][y] > cost[px + dx[ans]][py + dy[ans]] || cost[x][y] == cost[px + dx[ans]][py + dy[ans]] && d[COINS][x][y] < d[COINS][px + dx[ans]][py + dy[ans]])
+                        ans = i;
+            }
+            if(ans != NO_ANSWER)
+                return;
+        }
+    }
     x = pr[COINS][px][py].fi;
     y = pr[COINS][px][py].se;
     if (in_box(x, y) && c[x][y] != '!' && is_safe(x, y))
@@ -548,8 +551,9 @@ inline void clean_costs() {
         for (int j = 0 ; j < m; ++j)
             cost[i][j] = 0;
 }
-inline void make_costs(int x, int y) {
+inline void make_costs(int x, int y, double multi) {
     queue<pair<int, int> > mq;
+    if(d[MONSTERS][x][y] <= 1) return;
     mq.push({x, y});
     for (int i = 0; i < n; ++i)
         for (int j = 0; j < m; ++j)
@@ -563,7 +567,7 @@ inline void make_costs(int x, int y) {
         {
             int tx = x + dx[i];
             int ty = y + dy[i];
-            if (in_box(tx, ty) && c[tx][ty] != '!')
+            if (in_box(tx, ty) && c[tx][ty] != '!'&&d[MONSTERS][tx][ty] > 1)
                 if (dc[tx][ty] > dc[x][y] + 1)
                     dc[tx][ty] = dc[x][y] + 1, mq.push({tx, ty});
         }
@@ -571,7 +575,7 @@ inline void make_costs(int x, int y) {
     for (int i = 0; i < n; ++i)
         for (int j = 0; j < m; ++j)
             if (dc[i][j] < INF)
-                cost[i][j] += pow(DEC_PW, -dc[i][j]);
+                cost[i][j] += multi * pow(DEC_PW, -dc[i][j]);
 }
 inline void unmake(int x, int y) {
     queue<pair<int, int > > mq;
@@ -610,7 +614,6 @@ int main()
         cin >> m >> n >> player_id >> tick;
         cerr << n << " " << m << " " << player_id << " " << tick << endl;
         // if(player_id == 2) {
-        DEC_PW = 1.6;
         // } else DEC_PW = 1.8;
         block_monsters = 1;
         clean_costs();
@@ -667,6 +670,12 @@ int main()
             int cx = n / 2;
             int cy = m / 2;
             map_hash = encode(start_c);
+            if (!hash_to_id.count(map_hash))
+            {
+                hash_to_id[map_hash] = ++cnt_maps;
+                id_to_hash[cnt_maps] = map_hash;
+            }
+            map_id = hash_to_id[map_hash];
             mid_coins = 0;
             for(ll i = cx - 1; i <= cx + 1; ++i) {
                 for (ll j = cy - 1; j <= cy + 1; ++j) {
@@ -675,13 +684,29 @@ int main()
                 }
             }
         }
+        if (player_id <= 2) {
+            int cx = n / 2;
+            int cy = m / 2;
+            cur_mid = 0;
 
-        if (!hash_to_id.count(map_hash))
-        {
-            hash_to_id[map_hash] = ++cnt_maps;
-            id_to_hash[cnt_maps] = map_hash;
+            for(ll i = cx - 1; i <= cx + 1; ++i) {
+                for(ll j = cy - 1; j <= cy + 1; ++j) {
+                    if (c[i][j] == '#') {
+                        ++cur_mid;
+                    }
+                }
+            }
+            if(cnt_coins > cur_mid + 2 && mid_coins <= 4 && monsters.size() > 0 && 
+                map_id != 8 && map_id != 4 && map_id != 6 && map_id != 7) {
+                for(ll i = cx - 1; i <= cx + 1; ++i) {
+                    for(ll j = cy - 1; j <= cy + 1; ++j) {
+                        if (c[i][j] == '#') {
+                            coins.erase(find(coins.begin(), coins.end(), make_pair(i, j)));
+                        }
+                    }
+                }
+            }
         }
-        map_id = hash_to_id[map_hash];
 
         for (ll i = 0; i < n; i++)
             for (ll j = 0; j < m; j++)
@@ -729,26 +754,16 @@ int main()
                 {
                     px = cx, py = cy;
                     our_score += ((lc[px][py] == '#') + (cnt_coins > last_coins && start_c[cx][cy] == '#')) * (param_2 + 1);
-                    // if (!has_dagger && param_1)
-                    //     dagger_left = 15;
-                    // else
-                    //     dagger_left--;
-                    if (lc[px][py] == 'd')
+                    if (lc[px][py] == 'd' && param_1)
                         dagger_left = 15;
                     else
                         dagger_left--;
                     dagger_left = max(dagger_left, 0LL);
-                    // if (!has_bonus && param_2)
-                    //     bonus_left = 30;
-                    // else
-                    //     bonus_left--;
-                    if (lc[px][py] == 'b')
+                    if (lc[px][py] == 'b' && param_2)
                         bonus_left = 30;
                     else
                         bonus_left--;
                     bonus_left = max(bonus_left, 0LL);
-                    has_dagger = param_1;
-                    has_bonus = param_2;
                 }
 
                 // enemy
@@ -791,6 +806,7 @@ int main()
         cerr << "Player pos: " << px << " " << py << endl;
 
         if (!silent_mode) {
+            cerr << "Map id: " << map_id << endl;
             cerr << "Our score: " << our_score << endl;
             cerr << "Enemy score: " << enemy_score << endl;
         }
@@ -815,6 +831,9 @@ int main()
         // enemy
         bfs(ENEMY);
 
+
+        // monsters
+        bfs(MONSTERS);
         // if (player_id == 2)
         sort(coins.begin(), coins.end(), &cmp);
         for (pll coin:coins)
@@ -825,31 +844,7 @@ int main()
             {
                 d[COINS][i][j] = 0;
                 q[COINS].push({i, j});
-                make_costs(i, j);
-            }
-        }
-
-        if (player_id <= 2) {
-            int cx = n / 2;
-            int cy = m / 2;
-            cur_mid = 0;
-
-            for(ll i = cx - 1; i <= cx + 1; ++i) {
-                for(ll j = cy - 1; j <= cy + 1; ++j) {
-                    if (c[i][j] == '#') {
-                        ++cur_mid;
-                    }
-                }
-            }
-            if(cnt_coins > cur_mid + 2 && mid_coins <= 4 && monsters.size() > 0 && map_hash.second != 8424678 && map_hash.second != 8425198 && map_hash.second != 4785316 && map_hash.second != 10258434) {
-                for(ll i = cx - 1; i <= cx + 1; ++i) {
-                    for(ll j = cy - 1; j <= cy + 1; ++j) {
-                        if(safe_cells[map_id][i][j]) continue;
-                        if (c[i][j] == '#') {
-                            coins.erase(find(coins.begin(), coins.end(), make_pair(i, j)));
-                        }
-                    }
-                }
+                make_costs(i, j, +1);
             }
         }
         if (q[COINS].empty())
@@ -859,15 +854,18 @@ int main()
                 // all coins
                 d[COINS][i][j] = 0;
                 q[COINS].push({i, j});
-                make_costs(i, j);
+                make_costs(i, j, +1);
             }
 
+        if (!silent_mode)
+        {
+            for(int i = 0; i < n; ++i, cerr<<endl)
+                for(int j = 0; j < m; ++j)
+                    cerr<<cost[i][j] <<' ';
+        }
 
         // good coins
         bfs(COINS, true);
-
-        // monsters
-        bfs(MONSTERS);
 
         // daggers
         bfs(DAGGERS);
@@ -877,8 +875,6 @@ int main()
 
         // safe cells
         bfs(SAFE);
-
-
 
         // start map
         if (tick == 1)
@@ -919,14 +915,28 @@ int main()
             go_dagger = 0;
         }
 
-        // try to go to a bonus
-        go_to_bonus();
+        if (player_id == 2)
+        {
+            // try to go to a bonus
+            go_to_bonus();
 
-        // try to go to a dagger
-        go_to_dagger();
+            // try to go to a dagger
+            go_to_dagger();
+        }
+        else
+        {
+            // try to go to a dagger
+            go_to_dagger();
+
+            // try to go to a bonus
+            go_to_bonus();
+        }
 
         // try to kill a monster
-        go_kill();
+        if (!enemy_alive && player_id == 2)
+            go_kill();
+        else if (player_id != 2)
+            go_kill();
 
         // try to go to a coin
         go_to_coin();
@@ -935,6 +945,7 @@ int main()
         run_away();
 
         cerr << "debug code" << endl;
+        cerr << "player_id: " << player_id << endl;
         cerr << s[ans] << " " << px + dx[ans] << " " << py + dy[ans] << endl;
         cerr << d[COINS][px + dx[ans]][py + dy[ans]] << " " << d[COINS][px][py] << " " << d[MONSTERS][px + dx[ans]][py + dy[ans]] << endl;
         if (d[COINS][px + dx[ans]][py + dy[ans]] == 0)
