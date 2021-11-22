@@ -1,518 +1,986 @@
-#include<bits/stdc++.h>
-
+// #include <bits/stdc++.h>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <algorithm>
+#include <vector>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <queue>
+#include <stack>
+#include <chrono>
+#include <random>
 using namespace std;
-
 #define pb push_back
-
+#define mp make_pair
+#define INF ll(2e6)
+#define mod 998244353
+#define eps 1e-9
+#define abs(x) ((x)>=0?(x):-(x))
+#define y1 solai
+#define fi first
+#define se second
 typedef long long ll;
+typedef long double ld;
+typedef pair<ll,ll> pll;
+typedef pair<pll,ll> plll;
+typedef pair<double,double> pdd;
+const ll N = 21, K = 8, US = 0, ENEMY = 1, COINS = 2, MONSTERS = 3, DAGGERS = 4, BONUSES = 5, SAFE = 6, START = 7;
+double DEC_PW =1.2;
+const ll RIGHT = 0, DOWN = 1, LEFT = 2, UP = 3, STAY = 4, NO_ANSWER = -1;
+ll n = 11, m = 13, px, py, ex, ey, x, y, d[K][N][N], ans, neighbors[N][N], player_id, tick, safe_column[N];
+ll dx[5] = {0, 1, 0, -1, 0}, dy[5] = {1, 0, -1, 0, 0}, ord[5];
+ll cnt_coins, last_coins, dagger_left, bonus_left, our_score, enemy_score, cur_mid, mid_coins;
+pll pr[K][N][N];
+bool block_monsters = 0;
+vector<pll> daggers, bonuses, monsters, coins;
+queue<pll> q[K];
+char c[N][N], lc[N][N], start_c[N][N];
+ll bad_angle[N][N], near_monster[N][N], weight[N][N];
+string s[5] = {"right", "down", "left", "up", "stay"};
+bool enemy_alive, go_dagger, left_right, lleft, rright;
+ll last_coin = -1, cnt_maps, last_cnt_maps, map_id;
+plll map_hash;
+map<plll, ll> hash_to_id;
+plll id_to_hash[N];
+ll safe_cells[N][N][N], decoded[N][N], changed;
+mt19937 rnd(chrono::steady_clock::now().time_since_epoch().count());
 
-const ll N = 55;
-ll dx[] = {-1,0,0, 1,0}, dy[] = {0,1,-1,0,0};
 
-namespace Grid {
-    ll n, m, player_id, tick;
-    char c[N][N];
-    char start_c[N][N];
-    char lc[N][N];
-    ll cnt_coins;
-    ll last_coins;
-    int bad[N][N];
+const bool beast_mode = 0, are_you_sure = 0;
+const bool silent_mode = 1;
 
 
-    inline void read() {
-        cin >> m >> n >> player_id >> tick;
+ll in_box(ll x, ll y)
+{
+    return (0 <= x && x < n && 0 <= y && y < m);
+}
+ll border_dist(ll x, ll y)
+{
+    return min({x, y, n - x - 1, m - y - 1});
+}
+bool mid_zone(int x, int y)
+{
+    return x > 1 && x < n - 2 && y * 2 + 1 == m;
+}
+ll dist(pll a, pll b)
+{
+    return abs(a.fi - b.fi) + abs(a.se - b.se);
+}
+ll dist(ll x1, ll y1, ll x2, ll y2)
+{
+    return dist({x1, y1}, {x2, y2});
+}
+bool cmp(pll a, pll b)
+{
+    return weight[a.fi][a.se] > weight[b.fi][b.se];
+}
+string tostring(plll a)
+{
+    return "{{" + to_string(a.fi.fi) + ", " + to_string(a.fi.se) + "}, " + to_string(a.se) + "}";
+}
+void init_DEC_PW()
+{
+    if (map_id == 4)
+        DEC_PW = 1.2;
+    if (map_id == 5 || map_id == 9)
+        DEC_PW = 1.6;
+    if (map_id >= 6 && map_id <= 8)
+        DEC_PW = 2;
+}
+plll encode(char c[N][N])
+{
+    ll h1 = 0, h2 = 0, h3 = 0;
+    for (ll i = 0; i < n; i++)
+        for (ll j = 0; j < m; j++)
+        {
+            if (i < 4 && c[i][j] == '!')
+                h1 |= (1LL << (i * m + j));
+            else if (4 <= i && i < 8 && c[i][j] == '!')
+                h2 |= (1LL << ((i - 4) * m + j));
+            else if (8 <= i && c[i][j] == '!')
+                h3 |= (1LL << ((i - 8) * m + j));
+        }
+    return {{h1, h2}, h3};
+}
+plll encode(ll a[N][N])
+{
+    ll h1 = 0, h2 = 0, h3 = 0;
+    for (ll i = 0; i < n; i++)
+        for (ll j = 0; j < m; j++)
+        {
+            if (i < 4 && a[i][j])
+                h1 |= (1LL << (i * m + j));
+            else if (4 <= i && i < 8 && a[i][j])
+                h2 |= (1LL << ((i - 4) * m + j));
+            else if (8 <= i && a[i][j])
+                h3 |= (1LL << ((i - 8) * m + j));
+        }
+    return {{h1, h2}, h3};
+}
 
-        for (ll i = 0; i < n; i++)
-            for (ll j = 0; j < m; j++) {
-                lc[i][j] = c[i][j];
+// result is in array "decoded"
+void decode(plll a)
+{
+    ll h1 = a.fi.fi, h2 = a.fi.se, h3 = a.se, cur = 0, x;
+    for (ll i = 0; i < n; i++)
+        for (ll j = 0; j < m; j++)
+        {
+            if (i < 4)
+                x = h1;
+            else if (i < 8)
+                x = h2;
+            else
+                x = h3;
+            decoded[i][j] = ((x >> cur) & 1);
+            cur++;
+            cur %= 4 * m;
+        }
+}
+void print_map(ll id)
+{
+    if (silent_mode) return;
+//    cerr << "Map hashes:" << endl;
+//    cerr << "id_to_hash[" + to_string(id) + "] = " + tostring(id_to_hash[id]) + ";" << endl;
+//    plll encoded = encode(safe_cells[id]);
+//    cerr << "init(safe_cells[" + to_string(id) + "], " + tostring(encoded) + ");" << endl;
+//    if (cnt_maps != last_cnt_maps)
+//        cerr << "------ NEW LEVEL ----------" << endl;
+//    if (changed)
+//        cerr << "------ CHANGED SAFE MASK ----------" << endl;
+//    cerr << endl;
+}
+void print_safe_cells(ll id)
+{
+    if (silent_mode) return;
+//    for (ll i = 0; i < n; i++, cerr << endl)
+//        for (ll j = 0; j < m; j++)
+//            cerr << safe_cells[id][i][j];
+}
+
+void and_mask(ll a[N][N], ll b[N][N])
+{
+    for (ll i = 0; i < n; i++)
+        for (ll j = 0; j < m; j++)
+        {
+            if (a[i][j] && !b[i][j])
+                changed = 1;
+            a[i][j] &= b[i][j];
+        }
+}
+
+void init(ll a[N][N], plll b)
+{
+    decode(b);
+    for (ll i = 0; i < n; i++)
+        for (ll j = 0; j < m; j++)
+            a[i][j] = decoded[i][j];
+}
+
+void bfs(ll cur, bool is_coin = false)
+{
+    ll x, y, tx, ty;
+    for (;!q[cur].empty();)
+    {
+        x = q[cur].front().fi;
+        y = q[cur].front().se;
+        q[cur].pop();
+        for (ll i = 0; i < 4; i++)
+        {
+            tx = x + dx[i];
+            ty = y + dy[i];
+            bool fail = 0;
+            for (auto &M : monsters) {
+                if (dist({tx, ty}, M) <= 1)
+                    fail = 1;
             }
-        last_coins = cnt_coins;
-            cnt_coins = 0;
-        for (ll i = 0; i < n; i++) {
-            for (ll j = 0; j < m; j++) {
-                cin >> c[i][j];
-                cnt_coins += c[i][j] == '#';
-                if(tick == 1) start_c[i][j] = c[i][j];
+            if(fail && block_monsters && is_coin)
+                continue;
+
+            if (in_box(tx, ty) && c[tx][ty] != '!')
+                if (d[cur][tx][ty] > d[cur][x][y] + 1)
+                {
+                    d[cur][tx][ty] = d[cur][x][y] + 1;
+                    q[cur].push({tx, ty});
+                    pr[cur][tx][ty] = {x, y};
+                }
+        }
+    }
+}
+void init_safe_cells()
+{
+    cnt_maps = 0;
+    cnt_maps++;
+    id_to_hash[1] = {{1412887495131136, 1412876746391616}, 21053664};
+    init(safe_cells[1], {{3703033829523455, 3700685667086401}, 549755812067});
+    cnt_maps++;
+    id_to_hash[2] = {{141877870592, 148319537314}, 9766980};
+    init(safe_cells[2], {{3944984362744847, 3944990267473063}, 482103131207});
+    cnt_maps++;
+    id_to_hash[3] = {{35257659752448, 35253387052036}, 4785220};
+    init(safe_cells[3], {{106614510059519, 35257682019396}, 549755812935});
+    cnt_maps++;
+    id_to_hash[4] = {{565405475176448, 565153273479232}, 8425198};
+    init(safe_cells[4], {{830131278970879, 688309313208544}, 549755813887});
+    cnt_maps++;
+    id_to_hash[5] = {{245753184256, 15063171296}, 527950};
+    init(safe_cells[5], {{4230891749015047, 4239716836704255}, 413374479967});
+    cnt_maps++;
+    id_to_hash[6] = {{79730114560, 79742649508}, 4785316};
+    init(safe_cells[6], {{124208843587583, 123229339927780}, 549755813095});
+    cnt_maps++;
+    id_to_hash[7] = {{149671164805120, 149675468539970}, 10258434};
+    init(safe_cells[7], {{255563707449343, 184859841153090}, 549755811907});
+    cnt_maps++;
+    id_to_hash[8] = {{221601890304, 73293136964}, 8424678};
+    init(safe_cells[8], {{3944994561915911, 3949445766971391}, 481564949743});
+    cnt_maps++;
+    id_to_hash[9] = {{321057404256256, 321194978740226}, 8945664};
+    init(safe_cells[9], {{391439292825599, 321199273707586}, 549755805760});
+    cnt_maps++;
+    id_to_hash[10] = {{565198922465280, 565159714619552}, 16794344};
+    init(safe_cells[10], {{4068193022771199, 4067658299867361}, 549755813887});
+    last_cnt_maps = cnt_maps;
+    for (ll i = 1; i <= cnt_maps; i++)
+        hash_to_id[id_to_hash[i]] = i;
+}
+bool is_safe1(int x, int y)
+{
+    for (ll i = 0; i < 4; i++)
+    {
+        ll tx = x + dx[i], ty = y + dy[i];
+        if (in_box(tx, ty) && c[tx][ty] != '!' && d[MONSTERS][tx][ty] >= 4)
+            return 1;
+    }
+    return 0;
+}
+bool is_safe(int x, int y)
+{
+    if (beast_mode && are_you_sure && player_id == 2)
+        return (d[MONSTERS][x][y] > 2);
+    if (safe_cells[map_id][x][y] || dagger_left > 3)
+        return 1;
+    return is_safe1(x, y);
+}
+void count_empty_neighbors()
+{
+    for (ll i = 0; i < n; i++)
+        for (ll j = 0; j < m; j++)
+        {
+            neighbors[i][j] = 0;
+            for (ll k = 0; k < 4; k++)
+                if (in_box(i + dx[k], j + dy[k]) && c[i + dx[k]][j + dy[k]] != '!')
+                    neighbors[i][j]++;
+            if(neighbors[i][j] == 2)
+            {
+                for(int k = 1; k <= 4; k++)
+                {
+                    int cur = k % 4;
+                    int pre = (k - 1);
+                    if (in_box(i + dx[cur], j + dy[cur]) && c[i + dx[cur]][j + dy[cur]] != '!')
+                        if (in_box(i + dx[pre], j + dy[pre]) && c[i + dx[pre]][j + dy[pre]] != '!')
+                            bad_angle[i][j] = 1;
+                }
+            }
+        }
+}
+
+namespace bfs_distance {
+    int get_weight(int x, int y, int radius) {
+        if (c[x][y] == '!')
+            return 0;
+        vector <vector<int>> dist(n, vector<int>(m, -1));
+        int cnt = 0;
+        dist[x][y] = 0;
+        queue <pair<int,int>> cur_q;
+        cur_q.push({x, y});
+        while (cur_q.size()) {
+            int cur_x = cur_q.front().first;
+            int cur_y = cur_q.front().second;
+            cur_q.pop();
+
+            if (dist[cur_x][cur_y] <= radius) {
+                cnt += (c[cur_x][cur_y] == '#');
+            }
+            for (int i = 0; i < 4; i++) {
+                int nx = cur_x + dx[i];
+                int ny = cur_y + dy[i];
+                if (in_box(nx, ny) && dist[nx][ny] == -1 && c[nx][ny] != '!') {
+                    dist[nx][ny] = dist[cur_x][cur_y] + 1;
+                    cur_q.push({nx, ny});
+                }
+            }
+        }
+        return cnt;
+    }
+}
+
+void calculate_weights()
+{
+    ll r = 5;
+    for (ll i = 0; i < n; i++)
+        for (ll j = 0; j < m; j++)
+            weight[i][j] = bfs_distance :: get_weight(i, j, r);
+}
+void go_to_bonus()
+{
+    if (d[BONUSES][px][py] >= 300 - tick)
+        return;
+    if (!bonuses.empty())
+    {
+        for (pll bonus:bonuses)
+        {
+            x = bonus.fi;
+            y = bonus.se;
+            // TODO: maybe change
+            if ((d[BONUSES][px][py] < d[MONSTERS][x][y] || d[MONSTERS][px][py] > 4) && d[BONUSES][px][py] <= 10)
+            {
+                shuffle(ord, ord + 4, rnd);
+                for (ll j = 0; j < 4; j++)
+                {
+                    ll i = ord[j], tx = px + dx[i], ty = py + dy[i];
+                    if (in_box(tx, ty) && d[BONUSES][tx][ty] + 1 == d[BONUSES][px][py] && is_safe(tx, ty))
+                    {
+                        ans = i;
+                        if (!silent_mode) {
+                            cerr << "Moving towards bonus" << endl;
+                        }
+                    }
+                }
             }
         }
     }
 }
-
-
-
-class Position {
-public:
-    ll x, y;
-    string type;
-    ll param_1;
-    ll param_2;
-    ll p_id;
-    ll score = 0;
-    ll bonus_left = 0;
-    bool has_dagger = 0;
-    ll dagger_left = 0;
-    ll has_bonus = 0;
-    ll last_tick = -1;
-    ll last_coin = -1;
-
-    Position() {this->x = 0; this->y = 0;}
-    Position(ll x, ll y) {
-        this->x = x;
-        this->y = y;
-    }
-    void update(Position &pos) {
-
-        bonus_left = pos.bonus_left;
-        has_dagger = pos.has_dagger;
-        dagger_left = pos.dagger_left;
-        has_bonus = pos.has_bonus;
-        last_tick = Grid::tick;
-        last_coin = pos.last_coin;
-
-        score += ((Grid::lc[x][y] == '#') + (Grid::cnt_coins > Grid::last_coins && Grid::start_c[x][y] == '#')) * (param_2 + 1);
-        if(((Grid::lc[x][y] == '#') + (Grid::cnt_coins > Grid::last_coins && Grid::start_c[x][y] == '#')) * (param_2 + 1) > 0) {
-            last_coin = Grid::tick;
-        } else {
+void go_to_dagger()
+{
+    if (d[DAGGERS][px][py] >= 300 - tick)
+        return;
+    if (go_dagger && ans == NO_ANSWER && !monsters.empty() && !daggers.empty())
+    {
+        for (pll dagger:daggers)
+        {
+            x = dagger.fi;
+            y = dagger.se;
+            if ((d[DAGGERS][px][py] < d[MONSTERS][x][y] || d[MONSTERS][px][py] > 4) && d[DAGGERS][px][py] < 15)
+            {
+                shuffle(ord, ord + 4, rnd);
+                for (ll j = 0; j < 4; j++)
+                {
+                    ll i = ord[j], tx = px + dx[i], ty = py + dy[i];
+                    if (in_box(tx, ty) && d[DAGGERS][tx][ty] + 1 == d[DAGGERS][px][py] && is_safe(tx, ty))
+                    {
+                        ans = i;
+                        if (!silent_mode) {
+                            cerr << "Moving towards dagger" << endl;
+                        }
+                    }
+                }
+            }
         }
-        if (!has_dagger && param_1)
-            dagger_left = 15;
-        else
-            dagger_left--;
-        dagger_left = max(dagger_left, 0ll);
-        if (!has_bonus && param_2)
-            bonus_left = 30;
-        else
-            bonus_left--;
-        bonus_left = max(bonus_left, 0ll);
-        has_dagger = param_1;
-        has_bonus = param_2;
     }
-
-    Position(string type, ll p_id, ll x, ll y, ll param_1, ll param_2) {
-        this->type = type;
-        this->p_id = p_id;
-        this->x = x;
-        this->y = y;
-        this->param_1 = param_1;
-        this->param_2 = param_2;
-    }
-
-    bool inside() {
-        return 0 <= this->x && this-> x < Grid::n && 0 <= this->y && this->y < Grid::m && Grid::c[this->x][this->y] != '!';
-    }
-
-    bool operator == (const Position &b) {
-        return x == b.x && y == b.y;
-    }
-
-    vector<Position> move_cells() {
-        vector<Position> result;
-        for(ll i = 0; i <= 4; ++i) {
-            ll nx = this->x + dx[i];
-            ll ny = this->y + dy[i];
-            Position nxt = Position(nx, ny);
-            if(nxt.inside())
-                result.pb( Position(nx, ny));
+}
+void go_kill()
+{
+    if (d[MONSTERS][px][py] >= 300 - tick)
+        return;
+    if (ans == NO_ANSWER && dagger_left > 3 && go_dagger)
+    {
+        ans = STAY;
+        shuffle(ord, ord + 4, rnd);
+        for (ll j = 0; j < 4; j++)
+        {
+            ll i = ord[j];
+            x = px + dx[i];
+            y = py + dy[i];
+            if (in_box(x, y) && c[x][y] != '!')
+                if (d[MONSTERS][x][y] < d[MONSTERS][px + dx[ans]][py + dy[ans]])
+                {
+                    ans = i;
+                    if (!silent_mode) {
+                        cerr << "Moving towards monster" << endl;
+                    }
+                }
         }
-        return result;
     }
+}
+double cost[N][N];
+int dc[N][N];
 
-
-    bool is_alive() {
-        return this->last_tick == Grid::tick;
-    }
-
-
-    inline string get_direction(Position to) {
-        if(to.x > this->x) return "down";
-        if(to.y > this->y) return "right";
-        if(to.x < this->x) return "up";
-        if(to.y < this->y) return "left";
-        return "stay";
-    }
-    inline void prll() {
-        cerr << "Position " << this->x << ' ' << this->y << endl;
+void go_to_coin()
+{
+    if (ans != NO_ANSWER)
+        return;
+    if (cnt_coins <= 1 && our_score > enemy_score + 1 && enemy_alive)
+    {
+//        cerr<<our_score << ' ' << enemy_score <<' ' << enemy_alive << ' ' << cnt_coins << endl;
+        x = pr[START][px][py].fi;
+        y = pr[START][px][py].se;
+        if (in_box(x, y) && c[x][y] != '!' && is_safe(x, y))
+        {
+            for (ll i = 0; i < 4; i++)
+                if (px + dx[i] == x && py + dy[i] == y)
+                    ans = i;
+        }
+        else if (x == -1 && y == -1 && is_safe(px, py))
+        {
+            cerr << "Pears" << endl;
+            ans = STAY;
+        }
         return;
     }
-
-    bool is_safe(Position nxt);
-    ll get_score();
-} player, enemy_player;
-
-namespace SafeCellsGenerator {
-    bool is_safe_column[N];
-    bool is_safe_cell[N][N];
-
-    inline void init() {
-        for (int j = 0; j < Grid::m; ++j)
-            is_safe_column[j] = 1;
-    }
-
-    inline void remove(int col) {
-        for(ll j = max(0, col - 3); j <= min(Grid::m - 1, col + 3ll); j++)
-            is_safe_column[j] = 0;
-    }
-
-    inline int get(Position cur) {
-        return is_safe_column[cur.y];
-    }
-}
-
-constexpr bool operator<(const Position& lhs, const Position& rhs){
-return lhs.x < rhs.x || lhs.x == rhs.x && lhs.y < rhs.y;
-}
-
-struct BFS {
-    ll distance[N][N];
-    queue<Position> q;
-    map<Position, Position> par;
-    vector<Position> units;
-
-    inline void init(vector<Position> starts) {
-        while(!q.empty()) q.pop();
-        par.clear();
-        for(ll i = 0; i < Grid::n; ++i)
-            for(ll j = 0 ; j < Grid::m; ++j)
-                distance[i][j] = 1e9;
-
-        for(auto &pos : starts) {
-            distance[pos.x][pos.y] = 0;
-            par[pos] = pos;
-            q.push(pos);
+    if (map_id >= 4 && map_id <= 9)
+    {
+        if (map_id != 4 && player_id <= 2 || map_id == 4 && d[COINS][px][py] >= 2 && d[COINS][px][py] <=  7 && d[MONSTERS][px][py] >= 4) {
+            shuffle(ord, ord + 5, rnd);
+            for (ll j = 0; j <= 4; j++) {
+                ll i = ord[j];
+                x = px + dx[i];
+                y = py + dy[i];
+                if (in_box(x, y) && c[x][y] != '!' && is_safe(x, y))
+                    if (ans == NO_ANSWER || cost[x][y] > cost[px + dx[ans]][py + dy[ans]] || cost[x][y] == cost[px + dx[ans]][py + dy[ans]] && d[COINS][x][y] < d[COINS][px + dx[ans]][py + dy[ans]])
+                        ans = i;
+            }
+            if(ans != NO_ANSWER)
+                return;
         }
     }
-
-    inline ll get(Position pos) {
-        return distance[pos.x][pos.y];
+    x = pr[COINS][px][py].fi;
+    y = pr[COINS][px][py].se;
+    if (in_box(x, y) && c[x][y] != '!' && is_safe(x, y))
+    {
+        for (ll i = 0; i < 4; i++)
+            if (px + dx[i] == x && py + dy[i] == y)
+                ans = i;
+        return;
     }
-
-    inline void set(Position pos, ll value) {
-        distance[pos.x][pos.y] = value;
-    }
-
-    inline void bfs(const vector<Position> &starts, bool is_block_monster = false) {
-        units = starts;
-        init(starts);
-
-        while(!q.empty()) {
-            auto pos = q.front();
-            q.pop();
-            if(is_block_monster && Grid::bad[pos.x][pos.y]) continue;
-            for(auto &nxt : pos.move_cells()) {
-
-                if(is_block_monster && Grid::bad[nxt.x][nxt.y]) continue;
-                if(get(nxt) > get(pos) + 1) {
-                    par[nxt] = pos;
-                    set(nxt, get(pos) + 1);
-                    q.push(nxt);
+    shuffle(ord, ord + 4, rnd);
+    for (ll j = 0; j < 4; j++)
+    {
+        ll i = ord[j];
+        x = px + dx[i];
+        y = py + dy[i];
+        if (in_box(x, y) && c[x][y] != '!')
+            if (d[COINS][x][y] + 1 == d[COINS][px][py] && is_safe(x, y))
+            {
+                ans = i;
+                if (!silent_mode) {
+                    cerr << "Moving towards coin: " << x << " " << y << " " << d[MONSTERS][x][y] << " " << neighbors[x][y] << endl;
                 }
             }
-
-        }
-    }
-
-} monster_bfs, enemy_bfs, my_bfs, coin_bfs, bonus_bfs, dagger_bfs, start_bfs;
-
-namespace DistanceCalculator {
-    ll d[N][N][N][N];
-    inline void calc_all() {
-        for(ll i = 0; i < Grid::n; ++i)
-            for(ll j =0 ;j < Grid::m; ++j) {
-                BFS bfs = BFS();
-                bfs.init(vector<Position> (1, Position(i, j)));
-                for(ll x = 0 ; x < Grid::n; ++x)
-                    for(ll y = 0; y < Grid::m; ++y) {
-                        d[i][j][x][y] = bfs.distance[x][y];
-                    }
-            }
-    }
-
-    inline ll get(Position from, Position to) {
-        return d[from.x][from.y][to.x][to.y];
     }
 }
-
-namespace Status {
-    bool is_dagger;
-    ll dagger_tick;
-    bool is_bonus;
-    ll bonus_tick;
-}
-
-namespace Entities {
-    ll n;
-    vector<Position> units;
-    vector<Position> monsters;
-    vector<Position> enemy;
-    vector<Position> me;
-    vector<Position> daggers;
-    vector<Position> bonuses;
-    vector<Position> coins;
-
-    inline void read() {
-        monsters.clear(); units.clear(); me.clear();
-        enemy.clear();
-        daggers.clear();
-        bonuses.clear();
-        coins.clear();
-        cin >> n;
-        for (ll i = 0; i < n; i++) {
-            string type;
-            ll p_id, x, y, param_1, param_2;
-
-            cin >> type >> p_id >> x >> y >> param_1 >> param_2;
-            units.pb(Position(type, p_id, y, x, param_1, param_2));
-            cerr << type << p_id << x << y << param_1 << param_2 << endl;
-        }
-    }
-
-    inline void identify() {
-        for(ll i = 0; i < n; ++i) {
-            if(units[i].type == "m") {
-                monsters.pb(units[i]);
-            } else if(units[i].type == "p") {
-                if(units[i].p_id == Grid::player_id) {
-                    units[i].update(player);
-                    me.pb(units[i]);
-                    player = units[i];
-                } else {
-                    units[i].update(enemy_player);
-                    enemy.pb(units[i]);
-                    enemy_player = units[i];
-                }
-            }
-        }
-        for(ll i = 0; i < Grid::n; ++i) {
-            for(ll j = 0; j < Grid::m; ++j) {
-                if(Grid::c[i][j] == '#') {
-//                    cerr << i << ' ' << j<< endl;
-                    coins.pb(Position(i,j));
-                }else if(Grid::c[i][j] == 'b') {
-                    bonuses.pb(Position(i, j));
-                }else if(Grid::c[i][j] == 'b') {
-                    daggers.pb(Position(i, j));
-                }
-            }
-        }
-    }
-}
-
-bool Position::is_safe(Position nxt) {
-    cerr << nxt.x << ' ' << nxt.y << ' ' << SafeCellsGenerator::get(nxt) << endl;
-    if(SafeCellsGenerator::get(nxt)) return true;
-    auto nxt_moves = nxt.move_cells();
-    for(auto after : nxt_moves) {
-//        if(SafeCellsGenerator::get(after)) return true;
-        if(monster_bfs.get(after) >= 4 && (after.x != nxt.x || after.y != nxt.y)) {
-            return true;
-        }
-    }
-    return false;
-}
-
-ll Position::get_score() {
-    return monster_bfs.get(*this) * (-10000) + this->move_cells().size() * (-1000) - bonus_bfs.get(*this) * (-100) - coin_bfs.get(*this);
-}
-
-
-
-namespace SmartMover {
-    bool is_found_move = 0;
-    string direction = "";
-    bool go_dagger;
-
-    inline void go_to_something(BFS bfs, bool condition) {
-        if(bfs.get(player) >= 300 - Grid::tick) return;
-        if(is_found_move) return;
-        if(condition) {
-            auto nxt_cells = player.move_cells();
-            bool found_better = false;
-            bool found_fair = false;
-            Position best_move = player;
-            for (auto nxt : nxt_cells) {
-                if (player.is_safe(nxt)) {
-                    if (bfs.get(nxt) < bfs.get(player)) {
-                        if (found_better) {
-                            if (monster_bfs.get(nxt) < monster_bfs.get(best_move))
-                                best_move = nxt;
-                        } else {
-                            found_better = true;
-                            best_move = nxt;
-                        }
-                    } else if (bfs.get(nxt) == bfs.get(player)) {
-                        if (found_better) {
-
-                        } else {
-//                            if (monster_bfs.get(nxt) < monster_bfs.get(best_move)) {
-//                                best_move = nxt;
-//                                found_fair = true;
-//                            }
-                        }
-                    }
-                }
-            }
-            if(found_better || found_fair) {
-                is_found_move = true;
-                cerr << endl;
-                cerr<<bfs.get(best_move) << " next pos is " << ' ' << best_move.x << ' ' << best_move.y << ' '  << player.is_safe(best_move) << ' ' << monster_bfs.get(best_move) << endl;
-                direction = player.get_direction(best_move);
-            }
-        }
-
-    }
-
-    inline void go_kill() {
-        if(monster_bfs.get(player) >= 300 - Grid::tick)
-            return;
-        if(is_found_move) return;
-        if(player.dagger_left > 4 && go_dagger) {
-            auto nxt_cells = player.move_cells();
-            for (auto nxt : nxt_cells) {
-                if (monster_bfs.get(nxt) < monster_bfs.get(player)) {
-                    is_found_move = true;
-                    direction = player.get_direction(nxt);
-                }
-            }
-        }
-    }
-
-    inline void go_to_best_pos() {
-        if(is_found_move) return;
-        if (Entities::coins.size() <= 1 && player.score > enemy_player.score + 1 && enemy_player.is_alive())
+void run_away()
+{
+    if (ans == NO_ANSWER)
+    {
+        shuffle(ord, ord + 4, rnd);
+        for (ll j = 0; j <= 4; j++)
         {
-            Position pos = start_bfs.par[player];
-            if(pos.inside() && player.is_safe(pos)) {
-                is_found_move = true;
-                direction = player.get_direction(pos);
-                cerr << "Moving to the best pos " << endl;
-            }
-
-            return;
-        }
-    }
-
-    inline void run_away() {
-        if(is_found_move) return;
-        auto nxt_cells = player.move_cells();
-        auto best_move = player;
-        for (auto nxt : nxt_cells) {
-            if (player.is_safe(nxt)) {
-                if(nxt.get_score() < best_move.get_score() || !is_found_move) {
-                    best_move = nxt;
-                    is_found_move = true;
-                    direction = player.get_direction(best_move);
-                    cerr << " Running away to safe " << ' ' << player.x << ' ' << player.y << ' ' << best_move.x << ' ' << best_move.y << endl;
+            ll i = ord[j];
+            x = px + dx[i];
+            y = py + dy[i];
+            if (in_box(x, y) && c[x][y] != '!' && safe_cells[map_id][x][y])
+            {
+                ans = i;
+                if (!silent_mode) {
+                    cerr << "Moving towards safe column " << x << " " << y << endl;
                 }
             }
         }
-        if(is_found_move) return;
-        for (auto nxt : nxt_cells) {
-            if (nxt.get_score() < best_move.get_score() || !is_found_move) {
+    }
 
-                best_move = nxt;
-                is_found_move = true;
-                direction = player.get_direction(best_move);
-                cerr << " Running away from monster " << ' ' << player.x << ' ' << player.y << ' ' << best_move.x << ' ' << best_move.y << endl;
-
-            }
+    if (ans == NO_ANSWER)
+    {
+        shuffle(ord, ord + 4, rnd);
+        for (ll j = 0; j <= 4; j++)
+        {
+            ll i = ord[j];
+            x = px + dx[i];
+            y = py + dy[i];
+            if (in_box(x, y) && c[x][y] != '!')
+                if(neighbors[x][y] > 1 && is_safe(x, y))
+                {
+                    ans = i;
+                    if (!silent_mode) {
+                        cerr << "Moving away from monster to safe cell: " << x << " " << y << endl;
+                    }
+                }
         }
     }
 
-    inline void get_next_move() {
-//        if(Grid::player_id == 1)  {
-//            cout << "stay" << endl;
-//            return;
-//        }
-        is_found_move = 0;
-        cerr << player.x << ' ' << player.y << endl;
-        cerr << player.score << ' ' << enemy_player.score << endl;
-        cerr << "identifying go dagger" << ' ' << !enemy_player.is_alive() << ' ' << (Grid::tick - player.last_coin > 35 && player.score - 3 <= enemy_player.score) << ' ' << (coin_bfs.units.size() <= 4 && player.score < enemy_player.score + 2 && Entities::monsters.size()) << endl;
-        go_dagger =  !enemy_player.is_alive() || (Grid::tick - player.last_coin > 35 && player.score - 3 <= enemy_player.score)
-                                || (coin_bfs.units.size() <= 4 && player.score < enemy_player.score + 2 && Entities::monsters.size());
-        cerr << "Go dagger is " << go_dagger << endl;
-        go_to_something(dagger_bfs, !Entities::monsters.empty() && go_dagger && !is_found_move && !coin_bfs.units.empty() && !Entities::daggers.empty());
-        cerr << "Is Dagger " << is_found_move << endl;
-
-        go_kill();
-        cerr << "Is kill " << is_found_move << endl;
-        go_to_something(bonus_bfs, !is_found_move && !bonus_bfs.units.empty() && player.bonus_left <= 5);
-        cerr << "Is bonus " << is_found_move << endl;
-
-        go_to_best_pos();
-        cerr << "Is best pos " << is_found_move << endl;
-
-        go_to_something(coin_bfs, true);
-        cerr << "Is coin " << is_found_move << endl;
-
-        run_away();
-//        for(int i =0 ; i< Grid::n;++i,cerr<<endl)
-//            for(int j = 0; j < Grid::m; ++j)
-//                cerr << coin_bfs.distance[i][j] << ' ';
-        cerr << player.x << ' ' << player.y << ' ' << endl;
-        cerr<< direction<<endl;
-        cout << direction << endl;
+    if (ans == NO_ANSWER)
+    {
+        ll mx = 0, mn = INF;
+        shuffle(ord, ord + 4, rnd);
+        for (ll j = 0; j <= 4; j++)
+        {
+            ll i = ord[j];
+            x = px + dx[i];
+            y = py + dy[i];
+            if (in_box(x, y) && c[x][y] != '!')
+                if(neighbors[x][y] > 1)
+                    if(d[MONSTERS][x][y] > mx || (d[MONSTERS][x][y] == mx && d[SAFE][x][y] < mn))
+                    {
+                        ans = i;
+                        mx = d[MONSTERS][x][y];
+                        mn = d[SAFE][x][y];
+                        if (!silent_mode) {
+                            cerr << "Moving away from monster: " << x << " " << y << " " << d[MONSTERS][x][y] << " " << d[SAFE][x][y] << endl;
+                        }
+                    }
+        }
+    }
+    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && ans == NO_ANSWER && player_id == 2)
+    {
+        for (pll monster:monsters)
+        {
+            x = monster.fi;
+            y = monster.se;
+            // upper left
+            if (x == px - 1 && y == py - 1 && c[px - 1][py] != '!' && c[px][py - 1] != '!')
+            {
+                ans = LEFT;
+            }
+            // upper right
+            if (x == px - 1 && y == py + 1 && c[px - 1][py] != '!' && c[px][py + 1] != '!')
+            {
+                ans = UP;
+            }
+            // bottom left
+            if (x == px + 1 && y == py - 1 && c[px + 1][py] != '!' && c[px][py - 1] != '!')
+            {
+                ans = LEFT;
+            }
+            // bottom right
+            if (x == px + 1 && y == py + 1 && c[px + 1][py] != '!' && c[px][py + 1] != '!')
+            {
+                ans = RIGHT;
+            }
+        }
+        if (ans != NO_ANSWER)
+            cerr << "BEAST MODE" << endl;
     }
 }
-
-bool lleft, rright;
-
+inline void clean_costs() {
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < m; ++j)
+            cost[i][j] = 0;
+}
+inline void make_costs(int x, int y, double multi) {
+    queue<pair<int, int> > mq;
+    if(d[MONSTERS][x][y] <= 1) return;
+    mq.push({x, y});
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < m; ++j)
+            dc[i][j] = INF;
+    dc[x][y] = 0;
+    while (!mq.empty()) {
+        int x = mq.front().first;
+        int y = mq.front().second;
+        mq.pop();
+        for (ll i = 0; i < 4; i++)
+        {
+            int tx = x + dx[i];
+            int ty = y + dy[i];
+            if (in_box(tx, ty) && c[tx][ty] != '!'&&d[MONSTERS][tx][ty] > 1)
+                if (dc[tx][ty] > dc[x][y] + 1)
+                    dc[tx][ty] = dc[x][y] + 1, mq.push({tx, ty});
+        }
+    }
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < m; ++j)
+            if (dc[i][j] < INF)
+                cost[i][j] += multi * pow(DEC_PW, -dc[i][j]);
+}
+inline void unmake(int x, int y) {
+    queue<pair<int, int > > mq;
+    mq.push({x, y});
+    for (int i = 0; i < n; ++i)
+        for (int j = 0 ; j < m; ++j)
+            dc[i][j] = INF;
+    dc[x][y] = 0;
+    while (!mq.empty()) {
+        int x = mq.front().first;
+        int y = mq.front().second;
+        mq.pop();
+        for (ll i = 0; i < 4; i++)
+        {
+            int tx = x + dx[i];
+            int ty = y + dy[i];
+            if (in_box(tx, ty) && c[tx][ty] != '!')
+                if (dc[tx][ty] > dc[x][y] + 1)
+                    dc[tx][ty] = dc[x][y] + 1, mq.push({tx, ty});
+        }
+    }
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < m; ++j)
+            if (dc[i][j] < INF)
+                cost[i][j] -= pow(DEC_PW, -dc[i][j]);
+}
 int main()
 {
-    DistanceCalculator::calc_all();
-    while (true) {
-        Grid::read();
-        Entities::read();
-        Entities::identify();
+    for (ll i = 0; i < m; i++)
+        safe_column[i] = 1;
+    for (ll i = 0; i < 5; i++)
+        ord[i] = i;
+    init_safe_cells();
+    for(;;)
+    {
+        cin >> m >> n >> player_id >> tick;
+        cerr << n << " " << m << " " << player_id << " " << tick << endl;
+        // if(player_id == 2) {
+        // } else DEC_PW = 1.8;
+        block_monsters = 1;
+        clean_costs();
+        // read map
+        coins.clear();
+        daggers.clear();
+        bonuses.clear();
+        cnt_coins = 0;
 
-        monster_bfs.bfs(Entities::monsters);
-        my_bfs.bfs(Entities::me);
-        enemy_bfs.bfs(Entities::enemy);
-        if (Grid::tick == 1) {
-            start_bfs.bfs(Entities::coins);
-            for(auto &m: Entities::monsters) {
-                if (m.y < 5 && abs(m.x - 5) <= 2)
-                    lleft = 1;
-                if (m.y> 7 && abs(m.x - 5) <= 2)
-                    rright = 1;
+        for (ll k = 0; k < K; k++)
+        {
+            if (k == START && tick > 1)
+                break;
+            for (ll i = 0; i < n; i++)
+                for (ll j = 0; j < m; j++)
+                {
+                    d[k][i][j] = INF;
+                    pr[k][i][j] = {-1, -1};
+                }
+        }
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < m; j++)
+            {
+                cin >> c[i][j];
+                if (tick == 1)
+                    start_c[i][j] = c[i][j];
+                near_monster[i][j] = 0;
+                // dagger
+                if (c[i][j] == 'd')
+                {
+                    d[DAGGERS][i][j] = 0;
+                    q[DAGGERS].push({i, j});
+                    daggers.pb({i, j});
+                }
+                // bonus
+                if (c[i][j] == 'b')
+                {
+                    d[BONUSES][i][j] = 0;
+                    q[BONUSES].push({i, j});
+                    bonuses.pb({i, j});
+                }
+                // coin
+                if (c[i][j] == '#')
+                {
+                    cnt_coins++;
+                    coins.pb({i, j});
+                }
             }
+        }
+        last_coins = cnt_coins;
+        cerr << endl;
+        if (tick == 1) {
+            int cx = n / 2;
+            int cy = m / 2;
+            map_hash = encode(start_c);
+            if (!hash_to_id.count(map_hash))
+            {
+                hash_to_id[map_hash] = ++cnt_maps;
+                id_to_hash[cnt_maps] = map_hash;
+            }
+            map_id = hash_to_id[map_hash];
+            init_DEC_PW();
+            mid_coins = 0;
+            for(ll i = cx - 1; i <= cx + 1; ++i) {
+                for (ll j = cy - 1; j <= cy + 1; ++j) {
+                    if (c[i][j] == '#')
+                        ++mid_coins;
+                }
+            }
+        }
+        if (player_id <= 2) {
+            int cx = n / 2;
+            int cy = m / 2;
+            cur_mid = 0;
 
-            SafeCellsGenerator::init();
-            if(lleft && rright) {
-                for (ll j = 0; j < Grid::m; j++)
-                    SafeCellsGenerator::is_safe_column[j] = 0;
-                SafeCellsGenerator::is_safe_column[Grid::m / 2] = 1;
-            } else {
-                for(auto &m: Entities::monsters) SafeCellsGenerator::remove(m.y);
+            for(ll i = cx - 1; i <= cx + 1; ++i) {
+                for(ll j = cy - 1; j <= cy + 1; ++j) {
+                    if (c[i][j] == '#') {
+                        ++cur_mid;
+                    }
+                }
+            }
+            if(cnt_coins > cur_mid + 2 && mid_coins <= 4 && monsters.size() > 0 &&
+               map_id != 8 && map_id != 4 && map_id != 6 && map_id != 7) {
+                for(ll i = cx - 1; i <= cx + 1; ++i) {
+                    for(ll j = cy - 1; j <= cy + 1; ++j) {
+                        if (c[i][j] == '#') {
+                            coins.erase(find(coins.begin(), coins.end(), make_pair(i, j)));
+                        }
+                    }
+                }
             }
         }
 
-        auto coins = vector<Position>();
-        for (auto &coin : Entities::coins) {
-            if (my_bfs.get(coin) <= enemy_bfs.get(coin)) {
-                coins.push_back(coin);
+        for (ll i = 0; i < n; i++)
+            for (ll j = 0; j < m; j++)
+                if (safe_cells[map_id][i][j])
+                {
+                    d[SAFE][i][j] = 0;
+                    q[SAFE].push({i, j});
+                }
+
+        print_safe_cells(map_id);
+
+        cerr << endl;
+
+        if (!silent_mode) {
+            cerr << "Hash: " << tostring(map_hash) << endl;
+        }
+
+        print_map(map_id);
+
+        // count empty neighbors
+        count_empty_neighbors();
+
+        // calculate cell weights
+        calculate_weights();
+
+        // number of entities
+        int k;
+        cin >> k;
+
+        cerr << "k:" << k << endl;
+
+        enemy_alive = 0;
+        monsters.clear();
+        // read entities
+        for (int i = 0; i < k; i++) {
+            string type;
+            ll p_id, cx, cy, param_1, param_2;
+
+            cin >> type >> p_id >> cy >> cx >> param_1 >> param_2;
+            // player
+            if (type == "p")
+            {
+                // us
+                if (p_id == player_id)
+                {
+                    px = cx, py = cy;
+                    our_score += ((lc[px][py] == '#') + (cnt_coins > last_coins && start_c[cx][cy] == '#')) * (param_2 + 1);
+                    if (lc[px][py] == 'd' && param_1)
+                        dagger_left = 15;
+                    else
+                        dagger_left--;
+                    dagger_left = max(dagger_left, 0LL);
+                    if (lc[px][py] == 'b' && param_2)
+                        bonus_left = 30;
+                    else
+                        bonus_left--;
+                    bonus_left = max(bonus_left, 0LL);
+                }
+
+                // enemy
+                if (p_id != player_id)
+                {
+                    enemy_alive = 1;
+                    ex = cx;
+                    ey = cy;
+                    enemy_score += ((lc[ex][ey] == '#') + (cnt_coins > last_coins && start_c[cx][cy] == '#')) * (param_2 + 1);
+                }
+            }
+            // monster
+            if (type == "m")
+            {
+                if (safe_cells[map_id][cx][cy])
+                    changed = 1;
+                safe_cells[map_id][cx][cy] = 0;
+                monsters.pb({cx, cy});
+                for (ll xx = max(0LL, cx - 1); xx < min(n, cx + 2); xx++)
+                    for (ll yy = max(0LL, cy - 1); yy < min(m, cy + 2); yy++)
+                    {
+                        near_monster[xx][yy] = 1;
+                        // if (player_id == 2)
+                        //  d[COINS][xx][yy] = INF;
+                    }
+                d[MONSTERS][cx][cy] = 0;
+                q[MONSTERS].push({cx, cy});
+                if (tick == 1)
+                {
+                    for(ll j = max(0LL, cy - 3); j <= min(m - 1, cy + 3); j++)
+                        safe_column[j] = 0;
+                    if (cy < 5 && abs(cx - 5) <= 2)
+                        lleft = 1;
+                    if (cy > 7 && abs(cx - 5) <= 2)
+                        rright = 1;
+                }
+            }
+            cerr << type << " " << p_id << " " << cx << " " << cy << " " << param_1 << " " << param_2 << endl;
+        }
+        cerr << "Player pos: " << px << " " << py << endl;
+
+        if (!silent_mode) {
+            cerr << "Map id: " << map_id << endl;
+            cerr << "Our score: " << our_score << endl;
+            cerr << "Enemy score: " << enemy_score << endl;
+        }
+
+        if (tick == 1 && lleft && rright)
+        {
+            left_right = 1;
+            for (ll j = 0; j < m; j++)
+                safe_column[j] = 0;
+            safe_column[m / 2] = 1;
+        }
+
+        q[US].push({px, py});
+        d[US][px][py] = 0;
+
+        q[ENEMY].push({ex, ey});
+        d[ENEMY][ex][ey] = 0;
+
+        // player
+        bfs(US);
+
+        // enemy
+        bfs(ENEMY);
+
+
+        // monsters
+        bfs(MONSTERS);
+        // if (player_id == 2)
+        sort(coins.begin(), coins.end(), &cmp);
+        for (pll coin:coins)
+        {
+            ll i = coin.fi, j = coin.se;
+            // good coin
+            if (d[US][i][j] <= d[ENEMY][i][j])
+            {
+                d[COINS][i][j] = 0;
+                q[COINS].push({i, j});
+                make_costs(i, j, +1);
             }
         }
-        if (coins.empty())
-            for (auto &coin : Entities::coins) {
-                coins.push_back(coin);
+        if (q[COINS].empty())
+            for (pll coin:coins)
+            {
+                ll i = coin.fi, j = coin.se;
+                // all coins
+                d[COINS][i][j] = 0;
+                q[COINS].push({i, j});
+                make_costs(i, j, +1);
             }
-        for (int i = 0; i < Grid::n; ++i)
-            for (int j = 0; j < Grid::m; ++j) {
-                if (monster_bfs.get(Position(i, j)) <= 1) Grid::bad[i][j] = 1;
-                else Grid::bad[i][j] = 0;
-            }
-        coin_bfs.bfs(coins, true);
 
-        auto bonuses = vector<Position>();
-        for (auto &bonus : Entities::bonuses) {
-            if (my_bfs.get(bonus) <= enemy_bfs.get(bonus)) {
-                bonuses.push_back(bonus);
-            }
+        if (!silent_mode)
+        {
+            for(int i = 0; i < n; ++i, cerr<<endl)
+                for(int j = 0; j < m; ++j)
+                    cerr<<cost[i][j] <<' ';
         }
-        bonus_bfs.bfs(bonuses);
-        dagger_bfs.bfs(Entities::daggers);
 
-        SmartMover::get_next_move();
+        // good coins
+        bfs(COINS, true);
+
+        // daggers
+        bfs(DAGGERS);
+
+        // bonuses
+        bfs(BONUSES);
+
+        // safe cells
+        bfs(SAFE);
+
+        // start map
+        if (tick == 1)
+        {
+            ll mx = 0;
+            for (pll coin:coins)
+            {
+                ll i = coin.fi, j = coin.se;
+                mx = max(mx, weight[i][j]);
+            }
+            for (pll coin:coins)
+            {
+                ll i = coin.fi, j = coin.se;
+                if (weight[i][j] != mx)
+                    continue;
+                q[START].push({i, j});
+                d[START][i][j] = 0;
+            }
+            bfs(START);
+        }
+//        if(player_id == 2) {
+//            for (auto &x : monsters) {
+//                unmake(x.first, x.second);
+//            }
+//            unmake(ex, ey);
+//        }
+
+
+        ans = NO_ANSWER;
+
+        cerr << "Dagger left: " << dagger_left << endl;
+
+        go_dagger = 0;
+        if (enemy_alive == 0 || (tick - last_coin > 35 && our_score - 3 <= enemy_score)) {
+            go_dagger = 1;
+        }
+        if (monsters.empty()) {
+            go_dagger = 0;
+        }
+
+        if (map_id == 1 || map_id == 3)
+        {
+            // try to go to a dagger
+            go_to_dagger();
+
+            // try to go to a bonus
+            go_to_bonus();
+        }
+        else
+        {
+            // try to go to a bonus
+            go_to_bonus();
+
+            // try to go to a dagger
+            go_to_dagger();
+        }
+
+        // try to kill a monster
+        if (!enemy_alive && (map_id == 1 || map_id == 3))
+            go_kill();
+        else if (map_id != 1 && map_id != 3)
+            go_kill();
+
+        // try to go to a coin
+        go_to_coin();
+
+        // run away from a monster
+        run_away();
+
+        cerr << "debug code" << endl;
+        cerr << "player_id: " << player_id << endl;
+        cerr << s[ans] << " " << px + dx[ans] << " " << py + dy[ans] << endl;
+        cerr << d[COINS][px + dx[ans]][py + dy[ans]] << " " << d[COINS][px][py] << " " << d[MONSTERS][px + dx[ans]][py + dy[ans]] << endl;
+        if (d[COINS][px + dx[ans]][py + dy[ans]] == 0)
+            last_coin = tick;
+        // bot action
+        cout << s[ans] << endl;
+        // if (!silent_mode) {
+        //     cerr.precision(3);
+        //     for (ll i = 0; i < n; i++, cerr << endl)
+        //         for (ll j = 0; j < m; j++) {
+        //             cerr << fixed << cost[i][j] << ' ';
+        //         }
+        // }
+
+        for (ll i = 0; i < n; i++)
+            for (ll j = 0; j < m; j++)
+                lc[i][j] = c[i][j];
     }
-	return 0;
+
+    return 0;
 }
