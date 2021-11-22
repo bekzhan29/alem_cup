@@ -3,6 +3,12 @@ import requests
 bad_cells = {}
 hash_to_map = {}
 
+id_to_hash = []
+hash_to_id = {}
+win_from_map = []
+diff_from_map = []
+cnt_maps = 0
+
 
 def parse_game(link):
 	res = requests.get(url=link).json()
@@ -10,6 +16,35 @@ def parse_game(link):
 
 def get_map(res):
 	return res["initial_state"]["walls"]
+
+def init_maps():
+	global id_to_hash
+	global hash_to_id
+	global cnt_maps
+	cnt_maps += 1
+	id_to_hash.append((1412887495131136, 1412876746391616, 21053664))
+	cnt_maps += 1
+	id_to_hash.append((141877870592, 148319537314, 9766980))
+	cnt_maps += 1
+	id_to_hash.append((35257659752448, 35253387052036, 4785220))
+	cnt_maps += 1
+	id_to_hash.append((565405475176448, 565153273479232, 8425198))
+	cnt_maps += 1
+	id_to_hash.append((245753184256, 15063171296, 527950))
+	cnt_maps += 1
+	id_to_hash.append((79730114560, 79742649508, 4785316))
+	cnt_maps += 1
+	id_to_hash.append((149671164805120, 149675468539970, 10258434))
+	cnt_maps += 1
+	id_to_hash.append((221601890304, 73293136964, 8424678))
+	cnt_maps += 1
+	id_to_hash.append((321057404256256, 321194978740226, 8945664))
+	cnt_maps += 1
+	id_to_hash.append((565198922465280, 565159714619552, 16794344))
+	for i in range(0, cnt_maps):
+		hash_to_id[id_to_hash[i]] = i
+		win_from_map.append({"first": 0, "second" : 0})
+		diff_from_map.append({"first": [], "second": []})
 
 def get_hash(res):
 	dict = {}
@@ -32,7 +67,7 @@ def get_hash(res):
 
 win1 = 0
 win2 = 0
-
+import sys
 def get_score():
 	global win1
 	global win2
@@ -65,7 +100,7 @@ def get_score():
 	import time
 	while True:
 		res =requests.get(log_url, headers=headers)
-		print(res.json())
+		print(res.json()['finished'], file=sys.stderr, flush=True)
 		if res.json()['finished'] == True:
 			break
 		time.sleep(1)
@@ -75,6 +110,9 @@ def get_score():
 	score = {"p1": 0, "p2" : 0}
 	if res.status_code == 200:
 		frames = res.json()['frames']
+
+		hash = get_hash(get_map(res.json()))
+		map = hash_to_id[hash]
 		frames = list(filter(lambda x: x['d'], frames))
 		for frame in frames:
 			if frame['d']:
@@ -83,14 +121,21 @@ def get_score():
 						for action in result['p']:
 							score[action['n']] = max(score[action['n']], action['c'])
 		if score['p1'] > score['p2']:
-			win1 += 1
+			win_from_map[map]['first'] += 1
+			diff_from_map[map]['first'].append(score['p1'] - score['p2'])
 		elif score['p2'] > score['p1']:
-			win2 += 1
+			win_from_map[map]['second'] += 1
+			diff_from_map[map]['second'].append(score['p2'] - score['p1'])
 		else:
-			win1 += 0.5
-			win2 += 0.5
-		print(f"{score['p1']}: {score['p2']}")
+			win_from_map[map]['first'] += 0.5
+			win_from_map[map]['second'] += 0.5
 
-for i in range(100):
+		print(f"{score['p1']}: {score['p2']}", file=sys.stderr, flush=True)
+
+init_maps()
+for i in range(10000):
 	get_score()
-print(win1, win2)
+	print(i, file=sys.stderr, flush=True)
+	print(win_from_map, flush=True)
+	if i % 10 == 0:
+		print(diff_from_map, flush=True)
