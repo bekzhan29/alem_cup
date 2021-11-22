@@ -72,6 +72,8 @@ def get_hash(res):
 
 win1 = 0
 win2 = 0
+
+
 def get_score():
 	global win1
 	global win2
@@ -79,7 +81,7 @@ def get_score():
 		'Host': 'cup.alem.school',
 		'Connection': 'keep-alive',
 		'sec-ch-ua': '"Google Chrome";v="95", "Chromium";v="95", ";Not A Brand";v="99"',
-		'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ6aGFuLmt1cmJhbmJheWV2QGdtYWlsLmNvbSIsInVzZXJuYW1lIjoicnRta3oiLCJpZCI6MTMzLCJleHAiOjE2NDgzOTIxNjR9.fXTtHZukVhX0Cebj3WQ6G2nXvdQn37BZ104Mdfir0tk',
+		'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuaWNrcm9kbmVzc0BnbWFpbC5jb20iLCJ1c2VybmFtZSI6ImFlb24iLCJpZCI6MzgzLCJleHAiOjE2NDg4NDM1MTF9.QR3vqPxuZE7IaCk7AMLBgCM5D-QRpaKFP4ITcuoX8-A',
 		'sec-ch-ua-mobile': '?0',
 		'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
 		'sec-ch-ua-platform': '"macOS"',
@@ -104,12 +106,9 @@ def get_score():
 	import time
 	while True:
 		res = requests.get(log_url, headers=headers).json()
-		try:
-			print(res['finished'], file=sys.stderr, flush=True)
-			if res['finished'] is True:
-				break
-		except:
-			pass
+		print(res['finished'], file=sys.stderr, flush=True)
+		if res['finished'] is True:
+			break
 		time.sleep(1)
 
 	logs_url = f"https://s3.alem.school/storage/gamesessions/{key}.json"
@@ -140,7 +139,10 @@ def get_score():
 
 init_maps()
 for i in range(10000):
-	get_score()
+	try:
+		get_score()
+	except:
+		pass
 	print(i, file=sys.stderr, flush=True)
 	print(win_from_map, flush=True)
 	if i % 10 == 0:

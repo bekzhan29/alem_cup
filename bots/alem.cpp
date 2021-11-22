@@ -429,9 +429,9 @@ void go_to_coin()
         }
         return;
     }
-    if (map_id >= 4 && map_id <= 9)
+    if (map_id == 4 || map_id == 5 || map_id == 7)
     {
-        if (player_id <= 2) {
+        if (player_id <= 2 && d[COINS][px][py] >= 2 && d[COINS][px][py] <= 7 && d[MONSTERS][px][py] >= 4) {
             shuffle(ord, ord + 5, rnd);
             for (ll j = 0; j <= 4; j++) {
                 ll i = ord[j];
@@ -820,6 +820,8 @@ int main()
             }
             cerr << type << " " << p_id << " " << cx << " " << cy << " " << param_1 << " " << param_2 << endl;
         }
+        if (monsters.size() == 2 && map_id == 2)
+            c[3][6] = c[7][6] = '!';
         cerr << "Player pos: " << px << " " << py << endl;
 
         if (!silent_mode) {
