@@ -4,14 +4,23 @@
 
 ## main.py
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+Этот скрипт тестирует решение `main.cpp` против себя на сайте alem.cup.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+Чтобы проверить разные стратегии нужно прописать разный код для `player_id = 1` и для `player_id = 2`.
+
+Для запуска скрипта используйте команду снизу и результаты запишутся в `main.txt`.
+
+```
+python3 main.py > main.txt
+```
 
 ## parser.py
 
-- [ ] [Create](https://gitlab.com/-/experiment/new_project_readme_content:2a0785325a862ba4e75ca8919cc71b62?https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://gitlab.com/-/experiment/new_project_readme_content:2a0785325a862ba4e75ca8919cc71b62?https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://gitlab.com/-/experiment/new_project_readme_content:2a0785325a862ba4e75ca8919cc71b62?https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+Этот скрипт парсит все игры определенной команды. Из всех игр команды смотрит на каких клетках были монстры и помечает их опасными.
+
+Чтобы спарсить игры определенной команды нужно поменять в скрипте параметр `team_id`.
+
+Для запуска скрипта используйте команду снизу и ответ запишется в `parser.txt`.
 
 ```
 python3 parser.py > parser.txt
@@ -19,4 +28,13 @@ python3 parser.py > parser.txt
 
 ## analyze.cpp
 
-- [ ] [Set up project integrations](https://gitlab.com/-/experiment/new_project_readme_content:2a0785325a862ba4e75ca8919cc71b62?https://docs.gitlab.com/ee/user/project/integrations/)
+Этот скрипт берет маску безопасных клеток из файла `analyze.txt` и добавляет в уже существующую маску.
+
+Перед запуском этого скрипта нужно получить ответ от `parser.py` и скопировать последние 10 карт из файла `parser.txt` в `analyze.txt`
+
+Для запуска скрипта используйте команду снизу и ответ запишется в стандартный вывод `stdout`.
+
+```
+g++ analyze.cpp
+./a.out
+```
