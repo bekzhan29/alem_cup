@@ -47,7 +47,7 @@ def init_maps():
 	for i in range(0, cnt_maps):
 		hash_to_id[id_to_hash[i]] = i
 		win_from_map.append({"first": 0, "second": 0})
-		diff_from_map.append({"first": [], "second": []})
+		diff_from_map.append({"scores": []})
 
 
 def get_hash(res):
@@ -103,10 +103,13 @@ def get_score():
 	log_url = f'https://cup.alem.school/api/game/logs/{key}'
 	import time
 	while True:
-		res = requests.get(log_url, headers=headers)
-		print(res.json()['finished'], file=sys.stderr, flush=True)
-		if res.json()['finished'] is True:
-			break
+		res = requests.get(log_url, headers=headers).json()
+		try:
+			print(res['finished'], file=sys.stderr, flush=True)
+			if res['finished'] is True:
+				break
+		except:
+			pass
 		time.sleep(1)
 
 	logs_url = f"https://s3.alem.school/storage/gamesessions/{key}.json"
@@ -126,14 +129,12 @@ def get_score():
 							score[action['n']] = max(score[action['n']], action['c'])
 		if score['p1'] > score['p2']:
 			win_from_map[map]['first'] += 1
-			diff_from_map[map]['first'].append(score['p1'] - score['p2'])
 		elif score['p2'] > score['p1']:
 			win_from_map[map]['second'] += 1
-			diff_from_map[map]['second'].append(score['p2'] - score['p1'])
 		else:
 			win_from_map[map]['first'] += 0.5
 			win_from_map[map]['second'] += 0.5
-
+		diff_from_map[map]['scores'].append(score['p1'] - score['p2'])
 		print(f"Coins: {score['p1']}: {score['p2']}", file=sys.stderr, flush=True)
 
 
@@ -144,3 +145,4 @@ for i in range(10000):
 	print(win_from_map, flush=True)
 	if i % 10 == 0:
 		print(diff_from_map, flush=True)
+
