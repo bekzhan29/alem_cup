@@ -932,7 +932,7 @@ int main()
             go_dagger = 0;
         }
 
-        if (player_id == 2)
+        if (player_id <= 2)
         {
             // try to go to a bonus
             go_to_bonus();
@@ -950,9 +950,9 @@ int main()
         }
 
         // try to kill a monster
-        if (!enemy_alive && player_id == 2)
+        if (!enemy_alive && player_id > 2)
             go_kill();
-        else if (player_id != 2)
+        else if (player_id <= 2)
             go_kill();
 
         // try to go to a coin
