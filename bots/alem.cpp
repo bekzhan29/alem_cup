@@ -431,7 +431,7 @@ void go_to_coin()
     }
     if (map_id == 4 || map_id == 5 || map_id == 7)
     {
-        if (player_id <= 2 && d[COINS][px][py] >= 2 && d[COINS][px][py] <= 7 && d[MONSTERS][px][py] >= 4) {
+        if (map_id != 4 || (map_id == 4 && d[COINS][px][py] >= 2 && d[COINS][px][py] <=  7 && d[MONSTERS][px][py] >= 4)) {
             shuffle(ord, ord + 5, rnd);
             for (ll j = 0; j <= 4; j++) {
                 ll i = ord[j];
