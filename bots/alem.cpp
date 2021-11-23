@@ -145,42 +145,84 @@ struct board
     {
         return to_string(p[0].fi) + ", " + to_string(p[0].se) + "    " + to_string(p[1].fi) + ", " + to_string(p[1].se);
     }
-};
+}state;
 map<board, ll> used;
-plll brute_force(board a, ll s, ll depth)
+plll brute_force(ll s, ll depth)
 {
     steps++;
     if (depth == MAX_DEPTH)
         return {{s, 0}, 4};
-    if (used.count(a))
-        return {{used[a], 0}, 4};
-    ll cur = a.move;
+    if (used.count(state))
+        return {{used[state], 0}, 4};
+    ll cur = state.move, x, y, tx, ty, calc, changed, pos;
     plll ans = {{(!cur ? -INF : INF), 0}, 4}, res;
-    board b;
     for (ll i = 0; i < 4; i++)
     {
-        ll x = a.p[cur].fi, y = a.p[cur].se;
-        ll tx = x + dx[i], ty = y + dy[i];
+        x = state.p[cur].fi, y = state.p[cur].se;
+        tx = x + dx[i], ty = y + dy[i];
         if (!in_box(tx, ty) || c[tx][ty] == '!' || d[MONSTERS][tx][ty] <= 1)
             continue;
-        ll calc = temp[tx][ty];
+        calc = temp[tx][ty];
+        changed = 0;
         if (cur == 1)
-            temp[tx][ty] = 0, calc *= -1;
-        b = a;
-        b.p[cur] = {tx, ty};
-        b.move ^= 1;
-        b.depth += 1;
-        b.hash = encode(temp);
-        res = brute_force(b, s + calc, depth + 1);
+        {
+            if(temp[tx][ty])
+                changed = 1;
+            temp[tx][ty] = 0;
+            calc *= -1;
+        }
+        state.p[cur] = {tx, ty};
+        state.move ^= 1;
+        state.depth += 1;
+        if (changed)
+        {
+            if (tx < 4)
+            {
+                pos = tx * m + ty;
+                state.hash.fi.fi ^= (1LL << pos);
+            }
+            else if (tx < 8)
+            {
+                pos = (tx - 4) * m + ty;
+                state.hash.fi.se ^= (1LL << pos);
+            }
+            else
+            {
+                pos = (tx - 8) * m + ty;
+                state.hash.se ^= (1LL << pos);
+            }
+        }
+        res = brute_force(s + calc, depth + 1);
+        state.p[cur] = {x, y};
+        state.move ^= 1;
+        state.depth -= 1;
         res.se = i;
         res.fi.se = d[COINS][tx][ty] * (!cur ? -1 : 1);
         temp[tx][ty] = (calc != 0);
+        if (changed)
+        {
+            if (tx < 4)
+            {
+                pos = tx * m + ty;
+                state.hash.fi.fi ^= (1LL << (pos));
+            }
+            else if (tx < 8)
+            {
+                pos = (tx - 4) * m + ty;
+                state.hash.fi.se ^= (1LL << (pos));
+            }
+            else
+            {
+                pos = (tx - 8) * m + ty;
+                state.hash.se ^= (1LL << (pos));
+            }
+        }
         if (cur == 0)
             ans = max(ans, res);
         else
             ans = min(ans, res);
     }
-    used[a] = ans.fi.fi;
+    used[state] = ans.fi.fi;
     return ans;
 }
 
@@ -538,17 +580,16 @@ void go_brute_force()
 {
     if (ans != NO_ANSWER)
         return;
-    board a;
-    a.p[0] = {px, py};
-    a.p[1] = {ex, ey};
-    a.depth = 0;
-    a.move = 0;
+    state.p[0] = {px, py};
+    state.p[1] = {ex, ey};
+    state.depth = 0;
+    state.move = 0;
     for (ll i = 0; i < n; i++)
         for (ll j = 0; j < m; j++)
             temp[i][j] = (c[i][j] == '#');
-    a.hash = encode(temp);
+    state.hash = encode(temp);
     used.clear();
-    plll res = brute_force(a, 0, 0);
+    plll res = brute_force(0, 0);
     x = px + dx[res.se];
     y = py + dy[res.se];
     if (in_box(x, y) && c[x][y] != '!' && is_safe(x, y))
