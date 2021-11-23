@@ -26,7 +26,7 @@ typedef long double ld;
 typedef pair<ll,ll> pll;
 typedef pair<pll,ll> plll;
 typedef pair<double,double> pdd;
-const ll N = 21, K = 8, US = 0, ENEMY = 1, COINS = 2, MONSTERS = 3, DAGGERS = 4, BONUSES = 5, SAFE = 6, START = 7;
+const ll N = 21, MAX_DEPTH = 16, K = 8, US = 0, ENEMY = 1, COINS = 2, MONSTERS = 3, DAGGERS = 4, BONUSES = 5, SAFE = 6, START = 7;
 double DEC_PW =1.2;
 const ll RIGHT = 0, DOWN = 1, LEFT = 2, UP = 3, STAY = 4, NO_ANSWER = -1;
 ll n = 11, m = 13, px, py, ex, ey, x, y, d[K][N][N], ans, neighbors[N][N], player_id, tick, safe_column[N];
@@ -44,8 +44,9 @@ ll last_coin = -1, cnt_maps, last_cnt_maps, map_id;
 plll map_hash;
 map<plll, ll> hash_to_id;
 plll id_to_hash[N];
-ll safe_cells[N][N][N], decoded[N][N], changed;
+ll safe_cells[N][N][N], decoded[N][N], changed, temp[N][N], steps;
 mt19937 rnd(chrono::steady_clock::now().time_since_epoch().count());
+double max_time, cur_time;
 
 
 const bool beast_mode = 0, are_you_sure = 0;
@@ -118,6 +119,69 @@ plll encode(ll a[N][N])
                 h3 |= (1LL << ((i - 8) * m + j));
         }
     return {{h1, h2}, h3};
+}
+struct board
+{
+    plll hash;
+    pll p[2];
+    ll move, depth;
+    bool operator == (const board& a) const
+    {
+        return (hash == a.hash && p[0] == a.p[0] && p[1] == a.p[1] && move == a.move && depth == a.depth);
+    }
+    bool operator < (const board& a) const
+    {
+        if (hash != a.hash)
+            return hash < a.hash;
+        if (p[0] != a.p[0])
+            return p[0] < a.p[0];
+        if (p[1] != a.p[1])
+            return p[1] < a.p[1];
+        if (depth != a.depth)
+            return depth < a.depth;
+        return move < a.move;
+    }
+    string tostring()
+    {
+        return to_string(p[0].fi) + ", " + to_string(p[0].se) + "    " + to_string(p[1].fi) + ", " + to_string(p[1].se);
+    }
+};
+map<board, ll> used;
+plll brute_force(board a, ll s, ll depth)
+{
+    steps++;
+    if (depth == MAX_DEPTH)
+        return {{s, 0}, 4};
+    if (used.count(a))
+        return {{used[a], 0}, 4};
+    ll cur = a.move;
+    plll ans = {{(!cur ? -INF : INF), 0}, 4}, res;
+    board b;
+    for (ll i = 0; i < 4; i++)
+    {
+        ll x = a.p[cur].fi, y = a.p[cur].se;
+        ll tx = x + dx[i], ty = y + dy[i];
+        if (!in_box(tx, ty) || c[tx][ty] == '!' || d[MONSTERS][tx][ty] <= 1)
+            continue;
+        ll calc = temp[tx][ty];
+        if (cur == 1)
+            temp[tx][ty] = 0, calc *= -1;
+        b = a;
+        b.p[cur] = {tx, ty};
+        b.move ^= 1;
+        b.depth += 1;
+        b.hash = encode(temp);
+        res = brute_force(b, s + calc, depth + 1);
+        res.se = i;
+        res.fi.se = d[COINS][tx][ty] * (!cur ? -1 : 1);
+        temp[tx][ty] = (calc != 0);
+        if (cur == 0)
+            ans = max(ans, res);
+        else
+            ans = min(ans, res);
+    }
+    used[a] = ans.fi.fi;
+    return ans;
 }
 
 // result is in array "decoded"
@@ -325,7 +389,7 @@ void calculate_weights()
 }
 void go_to_bonus()
 {
-    if (d[BONUSES][px][py] >= 300 - tick)
+    if (ans != NO_ANSWER || d[BONUSES][px][py] >= 300 - tick)
         return;
     if (!bonuses.empty())
     {
@@ -354,9 +418,9 @@ void go_to_bonus()
 }
 void go_to_dagger()
 {
-    if (d[DAGGERS][px][py] >= 300 - tick)
+    if (ans != NO_ANSWER || d[DAGGERS][px][py] >= 300 - tick)
         return;
-    if (go_dagger && ans == NO_ANSWER && !monsters.empty() && !daggers.empty())
+    if (go_dagger && !monsters.empty() && !daggers.empty())
     {
         for (pll dagger:daggers)
         {
@@ -382,9 +446,9 @@ void go_to_dagger()
 }
 void go_kill()
 {
-    if (d[MONSTERS][px][py] >= 300 - tick)
+    if (ans != NO_ANSWER || d[MONSTERS][px][py] >= 300 - tick)
         return;
-    if (ans == NO_ANSWER && dagger_left > 3 && go_dagger)
+    if (dagger_left > 3 && go_dagger)
     {
         ans = STAY;
         shuffle(ord, ord + 4, rnd);
@@ -469,6 +533,26 @@ void go_to_coin()
                 }
             }
     }
+}
+void go_brute_force()
+{
+    if (ans != NO_ANSWER)
+        return;
+    board a;
+    a.p[0] = {px, py};
+    a.p[1] = {ex, ey};
+    a.depth = 0;
+    a.move = 0;
+    for (ll i = 0; i < n; i++)
+        for (ll j = 0; j < m; j++)
+            temp[i][j] = (c[i][j] == '#');
+    a.hash = encode(temp);
+    used.clear();
+    plll res = brute_force(a, 0, 0);
+    x = px + dx[res.se];
+    y = py + dy[res.se];
+    if (in_box(x, y) && c[x][y] != '!' && is_safe(x, y))
+        ans = res.se;
 }
 void run_away()
 {
@@ -934,31 +1018,54 @@ int main()
             go_dagger = 0;
         }
 
-        if (map_id == 1 || map_id == 3)
-        {
-            // try to go to a dagger
-            go_to_dagger();
+        // if (map_id == 1 || map_id == 3)
+        // {
+        //     // try to go to a dagger
+        //     go_to_dagger();
 
-            // try to go to a bonus
-            go_to_bonus();
+        //     // try to go to a bonus
+        //     go_to_bonus();
+        // }
+        // else
+        // {
+        //     // try to go to a bonus
+        //     go_to_bonus();
+
+        //     // try to go to a dagger
+        //     go_to_dagger();
+        // }
+        go_to_bonus();
+        go_to_dagger();
+
+        // try to kill a monster
+        // if (!enemy_alive && (map_id == 1 || map_id == 3))
+        //     go_kill();
+        // else if (map_id != 1 && map_id != 3)
+        //     go_kill();
+        go_kill();
+
+        if (player_id > 2)
+        {
+            // try to go to a coin
+            go_to_coin();
         }
         else
         {
-            // try to go to a bonus
-            go_to_bonus();
-
-            // try to go to a dagger
-            go_to_dagger();
+            clock_t start = clock();
+            // brute force
+            steps = 0;
+            go_brute_force();
+            double ans = clock() - start;
+            ans /= CLOCKS_PER_SEC;
+            max_time = max(max_time, ans);
+            if (!silent_mode)
+            {
+                cerr << "STEPS: " << steps << endl;
+                cerr.precision(5);
+                cerr << ans << endl;
+                cerr << max_time << endl;
+            }
         }
-
-        // try to kill a monster
-        if (!enemy_alive && (map_id == 1 || map_id == 3))
-            go_kill();
-        else if (map_id != 1 && map_id != 3)
-            go_kill();
-
-        // try to go to a coin
-        go_to_coin();
 
         // run away from a monster
         run_away();
