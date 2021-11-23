@@ -1,1 +1,0 @@
-[{'first': 29.0, 'second': 25.0}, {'first': 47.0, 'second': 27.0}, {'first': 27.5, 'second': 18.5}, {'first': 12.5, 'second': 31.5}, {'first': 31.5, 'second': 26.5}, {'first': 19, 'second': 23}, {'first': 34, 'second': 34}, {'first': 26.0, 'second': 31.0}, {'first': 36.5, 'second': 35.5}, {'first': 25.0, 'second': 22.0}]

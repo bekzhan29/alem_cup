@@ -1,4 +1,5 @@
 import requests
+import time
 import sys
 
 bad_cells = {}
@@ -103,7 +104,6 @@ def get_score():
 
 	# key = "636548a9-97e7-4c15-9097-539340ae3a9d"
 	log_url = f'https://cup.alem.school/api/game/logs/{key}'
-	import time
 	while True:
 		res = requests.get(log_url, headers=headers).json()
 		print(res['finished'], file=sys.stderr, flush=True)
@@ -128,13 +128,18 @@ def get_score():
 							score[action['n']] = max(score[action['n']], action['c'])
 		if score['p1'] > score['p2']:
 			win_from_map[map]['first'] += 1
+			win1 += 1
 		elif score['p2'] > score['p1']:
 			win_from_map[map]['second'] += 1
+			win2 += 1
 		else:
 			win_from_map[map]['first'] += 0.5
 			win_from_map[map]['second'] += 0.5
+			win1 += 0.5
+			win2 += 0.5
 		diff_from_map[map]['scores'].append(score['p1'] - score['p2'])
 		print(f"Coins: {score['p1']}: {score['p2']}", file=sys.stderr, flush=True)
+		print(f"Wins: {win1}: {win2}", file=sys.stderr, flush=True)
 
 
 init_maps()
@@ -142,7 +147,7 @@ for i in range(10000):
 	try:
 		get_score()
 	except:
-		pass
+		time.sleep(1)
 	print(i, file=sys.stderr, flush=True)
 	print(win_from_map, flush=True)
 	if i % 10 == 0:
