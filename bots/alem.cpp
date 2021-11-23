@@ -1096,6 +1096,7 @@ int main()
             // brute force
             steps = 0;
             go_brute_force();
+            go_to_coin();
             double ans = clock() - start;
             ans /= CLOCKS_PER_SEC;
             max_time = max(max_time, ans);
