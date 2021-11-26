@@ -717,31 +717,6 @@ inline void make_costs(int x, int y, double multi) {
                 cost[i][j] += multi * pow(DEC_PW, -dc[i][j]);
 }
 
-inline void unmake(int x, int y) {
-    queue<pair<int, int> > mq;
-    mq.push({x, y});
-    for (int i = 0; i < n; ++i)
-        for (int j = 0; j < m; ++j)
-            dc[i][j] = INF;
-    dc[x][y] = 0;
-    while (!mq.empty()) {
-        int x = mq.front().first;
-        int y = mq.front().second;
-        mq.pop();
-        for (ll i = 0; i < 4; i++) {
-            int tx = x + dx[i];
-            int ty = y + dy[i];
-            if (in_box(tx, ty) && c[tx][ty] != '!')
-                if (dc[tx][ty] > dc[x][y] + 1)
-                    dc[tx][ty] = dc[x][y] + 1, mq.push({tx, ty});
-        }
-    }
-    for (int i = 0; i < n; ++i)
-        for (int j = 0; j < m; ++j)
-            if (dc[i][j] < INF)
-                cost[i][j] -= pow(DEC_PW, -dc[i][j]);
-}
-
 int main()
 {
     for (ll i = 0; i < m; i++)
@@ -1100,7 +1075,7 @@ int main()
         // try to kill a monster
         go_kill();
 
-        if (player_id > 2)
+        if (player_id <= 2)
         {
             // try to go to a coin
             go_to_coin();
