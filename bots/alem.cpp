@@ -724,7 +724,7 @@ int main()
     for (ll i = 0; i < 5; i++)
         ord[i] = i;
     init_safe_cells();
-    init_dec_pw();
+    // init_dec_pw();
     for (;;) {
         cin >> m >> n >> player_id >> tick;
         cerr << n << " " << m << " " << player_id << " " << tick << endl;
