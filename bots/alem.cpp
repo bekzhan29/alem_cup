@@ -52,7 +52,7 @@ double max_time, cur_time;
 
 
 const bool beast_mode = 1, are_you_sure = 1;
-const bool silent_mode = 0;
+const bool silent_mode = 1;
 
 
 ll in_box(ll x, ll y) {
