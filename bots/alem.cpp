@@ -51,7 +51,7 @@ mt19937 rnd(chrono::steady_clock::now().time_since_epoch().count());
 double max_time, cur_time;
 
 
-const bool beast_mode = 0, are_you_sure = 0;
+const bool beast_mode = 1, are_you_sure = 1;
 const bool silent_mode = 1;
 
 
@@ -351,8 +351,8 @@ bool is_safe1(int x, int y) {
 }
 
 bool is_safe(int x, int y) {
-    if (beast_mode && are_you_sure && player_id == 2)
-        return (d[MONSTERS][x][y] > 2);
+    // if (beast_mode && are_you_sure && player_id == 2)
+    //     return (d[MONSTERS][x][y] > 2);
     if (safe_cells[map_id][x][y] || dagger_left > 3)
         return 1;
     return is_safe1(x, y);
@@ -659,7 +659,7 @@ void run_away() {
                     }
         }
     }
-    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && ans == NO_ANSWER && player_id == 2) {
+    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && (ans == STAY || ans == NO_ANSWER) && !safe_cells[map_id][px][py] && player_id == 2) {
         for (pll monster:monsters) {
             x = monster.fi;
             y = monster.se;
@@ -724,7 +724,7 @@ int main()
     for (ll i = 0; i < 5; i++)
         ord[i] = i;
     init_safe_cells();
-    init_dec_pw();
+    // init_dec_pw();
     for (;;) {
         cin >> m >> n >> player_id >> tick;
         cerr << n << " " << m << " " << player_id << " " << tick << endl;
@@ -786,7 +786,6 @@ int main()
                 }
             }
         }
-        last_coins = cnt_coins;
         cerr << endl;
         if (tick == 1) {
             int cx = n / 2;
@@ -924,7 +923,9 @@ int main()
             }
             cerr << type << " " << p_id << " " << cx << " " << cy << " " << param_1 << " " << param_2 << endl;
         }
+        last_coins = cnt_coins;
         cerr << "Player pos: " << px << " " << py << endl;
+        cerr << "Enemy pos: " << ex << " " << ey << endl;
 
         if (!silent_mode) {
             cerr << "Map id: " << map_id << endl;
@@ -1057,6 +1058,7 @@ int main()
         ans = NO_ANSWER;
 
         cerr << "Dagger left: " << dagger_left << endl;
+        cerr << "Bonuse left: " << bonus_left << endl;
 
         go_dagger = 0;
         if (enemy_alive == 0 || (tick - last_coin > 35 && our_score - 3 <= enemy_score)) {
