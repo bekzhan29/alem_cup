@@ -33,7 +33,7 @@ double DEC_PW = 1.4;
 const ll RIGHT = 0, DOWN = 1, LEFT = 2, UP = 3, STAY = 4, NO_ANSWER = -1;
 ll n = 11, m = 13, px, py, ex, ey, x, y, d[K][N][N], ans, neighbors[N][N], player_id, tick, safe_column[N];
 ll dx[5] = {0, 1, 0, -1, 0}, dy[5] = {1, 0, -1, 0, 0}, ord[5];
-ll cnt_coins, last_coins, dagger_left, bonus_left, our_score, enemy_score, cur_mid, mid_coins;
+ll cnt_coins, last_coins, dagger_left, bonus_left, enemy_bonus_left, our_score, enemy_score, cur_mid, mid_coins;
 pll pr[K][N][N];
 bool block_monsters = 0;
 vector<pll> daggers, bonuses[K], monsters, coins;
@@ -42,7 +42,7 @@ char c[N][N], lc[N][N], start_c[N][N];
 ll bad_angle[N][N], near_monster[N][N], weight[N][N];
 string s[5] = {"right", "down", "left", "up", "stay"};
 bool enemy_alive, go_dagger, left_right, lleft, rright;
-ll last_coin = -1, cnt_maps, last_cnt_maps, map_id, bonus_type;
+ll last_coin = -1, cnt_maps, last_cnt_maps, map_id, bonus_type, enemy_bonus_type;
 plll map_hash;
 map<plll, ll> hash_to_id;
 plll id_to_hash[N];
@@ -52,7 +52,7 @@ double max_time, cur_time;
 
 
 const bool beast_mode = 1, are_you_sure = 1;
-const bool silent_mode = 1;
+const bool silent_mode = 0;
 
 
 ll in_box(ll x, ll y) {
@@ -292,7 +292,7 @@ void bfs(ll cur, bool is_coin = false) {
             if (fail && block_monsters && is_coin)
                 continue;
 
-            if (monsters.size() == 2 && map_id == 2 && ty == 6 && (tx == 3 || tx == 7))
+            if (player_id == 2 && cur != MONSTERS && monsters.size() == 2 && map_id == 2 && ty == 6 && (tx == 3 || tx == 7))
                 continue;
             if (in_box(tx, ty) && c[tx][ty] != '!')
                 if (d[cur][tx][ty] > d[cur][x][y] + 1) {
@@ -880,9 +880,9 @@ int main()
                     if (lc[px][py] == 'b' && param_2 == 1)
                         bonus_left = 30;
                     else if (lc[px][py] == 'f' && param_2 == 2)
-                        bonus_left = 30;
+                        bonus_left = 15;
                     else if (lc[px][py] == 'i' && param_2 == 3)
-                        bonus_left = 30;
+                        bonus_left = 15;
                     else
                         bonus_left--;
                     bonus_left = max(bonus_left, 0LL);
@@ -896,6 +896,16 @@ int main()
                     ey = cy;
                     enemy_score +=
                             ((lc[ex][ey] == '#') + (cnt_coins > last_coins && start_c[cx][cy] == '#')) * ((param_2 == 1) + 1);
+                    if (lc[ex][ey] == 'b' && param_2 == 1)
+                        enemy_bonus_left = 30;
+                    else if (lc[ex][ey] == 'f' && param_2 == 2)
+                        enemy_bonus_left = 15;
+                    else if (lc[ex][ey] == 'i' && param_2 == 3)
+                        enemy_bonus_left = 15;
+                    else
+                        enemy_bonus_left--;
+                    enemy_bonus_left = max(enemy_bonus_left, 0LL);
+                    enemy_bonus_type = param_2;
                 }
             }
             // monster
@@ -1067,6 +1077,12 @@ int main()
         if (monsters.empty()) {
             go_dagger = 0;
         }
+
+        // try to go to a freeze
+        go_to_bonus(FREEZE);
+
+        // try to go to an immune
+        go_to_bonus(IMMUNE);
 
         // try to go to a bonus
         go_to_bonus(BONUSES);
