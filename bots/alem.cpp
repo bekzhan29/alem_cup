@@ -292,7 +292,7 @@ void bfs(ll cur, bool is_coin = false) {
             if (fail && block_monsters && is_coin)
                 continue;
 
-            if (player_id == 2 && cur != MONSTERS && monsters.size() == 2 && map_id == 2 && ty == 6 && (tx == 3 || tx == 7))
+            if (cur != MONSTERS && monsters.size() == 2 && map_id == 2 && ty == 6 && (tx == 3 || tx == 7))
                 continue;
             if (in_box(tx, ty) && c[tx][ty] != '!')
                 if (d[cur][tx][ty] > d[cur][x][y] + 1) {
