@@ -419,6 +419,23 @@ void calculate_weights() {
             weight[i][j] = bfs_distance::get_weight(i, j, r);
 }
 
+void kill_enemy() {
+    if (player_id != 2)
+        return;
+    if (ans != NO_ANSWER || bonus_type != 2 || enemy_bonus_type == 3)
+        return;
+    if (!enemy_alive || d[US][ex][ey] > 2 || safe_cells[map_id][ex][ey])
+        return;
+    for (pll monster:monsters) {
+        x = monster.fi;
+        y = monster.se;
+        if (d[US][x][y] > 2 && d[ENEMY][x][y] <= 5) {
+            ans = STAY;
+            return;
+        }
+    }
+}
+
 void go_to_bonus(ll type) {
     if (ans != NO_ANSWER || d[type][px][py] >= 300 - tick)
         return;
@@ -1077,6 +1094,8 @@ int main()
         if (monsters.empty()) {
             go_dagger = 0;
         }
+
+        kill_enemy();
 
         // try to go to a freeze
         // go_to_bonus(FREEZE);
