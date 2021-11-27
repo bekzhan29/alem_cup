@@ -424,12 +424,12 @@ void kill_enemy() {
         return;
     if (ans != NO_ANSWER || bonus_type != 2 || enemy_bonus_type == 3)
         return;
-    if (!enemy_alive || d[US][ex][ey] != 2 || safe_cells[map_id][ex][ey])
+    if (!enemy_alive || dist(px, py, ex, ey) != 2 || safe_cells[map_id][ex][ey])
         return;
     for (pll monster:monsters) {
         x = monster.fi;
         y = monster.se;
-        if (d[US][x][y] > 2 && d[ENEMY][x][y] <= 5) {
+        if (dist(px, py, x, y) > 2 && d[ENEMY][x][y] <= 5) {
             ans = STAY;
             return;
         }
@@ -1098,7 +1098,8 @@ int main()
         kill_enemy();
 
         // try to go to a freeze
-        // go_to_bonus(FREEZE);
+        // if (player_id == 2)
+            // go_to_bonus(FREEZE);
 
         // try to go to an immune
         // go_to_bonus(IMMUNE);
