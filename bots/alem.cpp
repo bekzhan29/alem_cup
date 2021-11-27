@@ -989,7 +989,7 @@ int main()
             return d[SAFE][xa][ya] < d[SAFE][xb][yb] ||
                    d[SAFE][xa][ya] == d[SAFE][xb][yb] && d[US][xa][ya] < d[US][xb][yb];
         });
-        if (map_id == 1 || map_id == 4 || map_id == 8) {
+        if (monsters.size() == 2 && (map_id == 1 || map_id == 4 || map_id == 8)) {
             for (auto coin: all) {
                 ll i = coin.fi, j = coin.se;
                 d[COINS][i][j] = 0;
@@ -1079,10 +1079,10 @@ int main()
         }
 
         // try to go to a freeze
-        go_to_bonus(FREEZE);
+        // go_to_bonus(FREEZE);
 
         // try to go to an immune
-        go_to_bonus(IMMUNE);
+        // go_to_bonus(IMMUNE);
 
         // try to go to a bonus
         go_to_bonus(BONUSES);
