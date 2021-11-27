@@ -424,7 +424,7 @@ void kill_enemy() {
         return;
     if (ans != NO_ANSWER || bonus_type != 2 || enemy_bonus_type == 3)
         return;
-    if (!enemy_alive || d[US][ex][ey] > 2 || safe_cells[map_id][ex][ey])
+    if (!enemy_alive || d[US][ex][ey] != 2 || safe_cells[map_id][ex][ey])
         return;
     for (pll monster:monsters) {
         x = monster.fi;
