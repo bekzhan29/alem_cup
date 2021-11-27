@@ -1,4 +1,5 @@
 import requests
+import json
 import time
 import sys
 
@@ -82,7 +83,7 @@ def get_score():
 		'Host': 'cup.alem.school',
 		'Connection': 'keep-alive',
 		'sec-ch-ua': '"Google Chrome";v="95", "Chromium";v="95", ";Not A Brand";v="99"',
-		'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuaWNrcm9kbmVzc0BnbWFpbC5jb20iLCJ1c2VybmFtZSI6ImFlb24iLCJpZCI6MzgzLCJleHAiOjE2NDg4NDM1MTF9.QR3vqPxuZE7IaCk7AMLBgCM5D-QRpaKFP4ITcuoX8-A',
+		'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiZWtqYW4yOThAbWFpbC5ydSIsInVzZXJuYW1lIjoiYmVremhhbjI5IiwiaWQiOjM4MiwiZXhwIjoxNjQ4OTAyMzE3fQ.lTBsDO9Q7JtcpNnTK2UlAxtPecqnlkNhQe0r82GCXVY',
 		'sec-ch-ua-mobile': '?0',
 		'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36',
 		'sec-ch-ua-platform': '"macOS"',
@@ -90,7 +91,7 @@ def get_score():
 		'Sec-Fetch-Site': 'same-origin',
 		'Sec-Fetch-Mode': 'cors',
 		'Sec-Fetch-Dest': 'empty',
-		'Referer': 'https://c...content-available-to-author-only...m.school/main/profile/383',
+		'Referer': 'https://cup.alem.school/main/profile/383',
 		'Accept-Encoding': 'gzip, deflate, br',
 		'Accept-Language': 'en-US,en;q=0.9,ru;q=0.8',
 		'Cookie': '_ym_uid=1635431987715230997; _ym_d=1635431987'
@@ -113,6 +114,8 @@ def get_score():
 
 	logs_url = f"https://s3.alem.school/storage/gamesessions/{key}.json"
 	res = requests.get(logs_url)
+	# with open("answer.json", "w") as out:
+	# 	out.write(str(json.dumps(res.json(), indent=4)))
 	score = {"p1": 0, "p2": 0}
 	if res.status_code == 200:
 		frames = res.json()['frames']
@@ -120,12 +123,14 @@ def get_score():
 		hash = get_hash(get_map(res.json()))
 		map = hash_to_id[hash]
 		frames = list(filter(lambda x: x['d'], frames))
+		last_frame = 0
 		for frame in frames:
 			if frame['d']:
 				for result in frame['d']:
 					if result['n'] == '#':
 						for action in result['p']:
 							score[action['n']] = max(score[action['n']], action['c'])
+			last_frame = frame["f"]
 		if score['p1'] > score['p2']:
 			win_from_map[map]['first'] += 1
 			win1 += 1
@@ -140,6 +145,7 @@ def get_score():
 		diff_from_map[map]['scores'].append(score['p1'] - score['p2'])
 		print(f"Coins: {score['p1']}: {score['p2']}", file=sys.stderr, flush=True)
 		print(f"Wins: {win1}: {win2}", file=sys.stderr, flush=True)
+		print(f"Ticks: {last_frame}", file=sys.stderr, flush=True)
 
 
 init_maps()
