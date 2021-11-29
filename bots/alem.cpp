@@ -275,6 +275,26 @@ void init(ll a[N][N], plll b) {
             a[i][j] = decoded[i][j];
 }
 
+bool bad_cell(ll type, ll x, ll y) {
+    if (!in_box(x, y) || c[x][y] == '!')
+        return 1;
+    if (type != MONSTERS && (map_id == 4 || map_id == 10) && x >= 4 && x <= 6)
+    {
+        if (monsters.empty())
+            return 0;
+        if (monsters.size() == 2 && (y == 2 || y == 10))
+            return 1;
+        if (monsters.size() == 1 && y == 2 && monsters[0].se < 6)
+            return 1;
+        if (monsters.size() == 1 && y == 10 && monsters[0].se > 6)
+            return 1;
+        return 0;
+    }
+    if (type != MONSTERS && monsters.size() == 2 && map_id == 2 && y == 6 && (x == 3 || x == 7))
+        return 1;
+    return 0;
+}
+
 void bfs(ll cur, bool is_coin = false) {
     ll x, y, tx, ty;
     for (; !q[cur].empty();) {
@@ -292,8 +312,9 @@ void bfs(ll cur, bool is_coin = false) {
             if (fail && block_monsters && is_coin)
                 continue;
 
-            if (cur != MONSTERS && monsters.size() == 2 && map_id == 2 && ty == 6 && (tx == 3 || tx == 7))
+            if (cur != MONSTERS && monsters.size() == 2 && map_id == 2 && y == 6 && (x == 3 || x == 7))
                 continue;
+
             if (in_box(tx, ty) && c[tx][ty] != '!')
                 if (d[cur][tx][ty] > d[cur][x][y] + 1) {
                     d[cur][tx][ty] = d[cur][x][y] + 1;
@@ -354,6 +375,8 @@ bool is_safe(int x, int y) {
     // if (beast_mode && are_you_sure && player_id == 2)
     //     return (d[MONSTERS][x][y] > 2);
     if (safe_cells[map_id][x][y] || dagger_left > 3)
+        return 1;
+    if (map_id == 9 && bonus_type == 2 && bonus_left > 3 && d[MONSTERS][x][y] > 0)
         return 1;
     return is_safe1(x, y);
 }
@@ -625,7 +648,8 @@ void go_brute_force()
 }
 
 void run_away() {
-    if (ans == NO_ANSWER) {
+    // REMOVE
+    if (ans == NO_ANSWER && map_id != 4 && map_id != 10) {
         shuffle(ord, ord + 4, rnd);
         for (ll j = 0; j <= 4; j++) {
             ll i = ord[j];
@@ -634,7 +658,7 @@ void run_away() {
             if (in_box(x, y) && c[x][y] != '!' && safe_cells[map_id][x][y]) {
                 ans = i;
                 if (!silent_mode) {
-                    cerr << "Moving towards safe column " << x << " " << y << endl;
+                    cerr << "Moving towards safe cell " << x << " " << y << endl;
                 }
             }
         }
@@ -648,7 +672,8 @@ void run_away() {
             y = py + dy[i];
             if (in_box(x, y) && c[x][y] != '!')
                 if (neighbors[x][y] > 1 && is_safe(x, y)) {
-                    ans = i;
+                    if ((map_id == 4 || map_id == 10) && (ans == NO_ANSWER || d[COINS][x][y] < d[COINS][px + dx[ans]][py + dy[ans]]))
+                        ans = i;
                     if (!silent_mode) {
                         cerr << "Moving away from monster to safe cell: " << x << " " << y << endl;
                     }
@@ -676,7 +701,7 @@ void run_away() {
                     }
         }
     }
-    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && (ans == STAY || ans == NO_ANSWER) && !safe_cells[map_id][px][py] && player_id == 2) {
+    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && (ans == STAY || ans == NO_ANSWER) && !safe_cells[map_id][px][py]) {
         for (pll monster:monsters) {
             x = monster.fi;
             y = monster.se;
@@ -1095,17 +1120,17 @@ int main()
             go_dagger = 0;
         }
 
-        kill_enemy();
-
-        // try to go to a freeze
-        // if (player_id == 2)
-            // go_to_bonus(FREEZE);
+        // kill_enemy();
 
         // try to go to an immune
         // go_to_bonus(IMMUNE);
 
         // try to go to a bonus
         go_to_bonus(BONUSES);
+
+        // try to go to a freeze
+        if (map_id == 9 && d[FREEZE][px][py] <= 7 && bonus_left < d[FREEZE][px][py])
+            go_to_bonus(FREEZE);
 
         // try to go to a dagger
         go_to_dagger();

@@ -122,15 +122,16 @@ def get_score():
 
 		hash = get_hash(get_map(res.json()))
 		map = hash_to_id[hash]
-		frames = list(filter(lambda x: x['d'], frames))
 		last_frame = 0
+		for frame in frames:
+			last_frame = max(last_frame, frame["f"])
+		frames = list(filter(lambda x: x['d'], frames))
 		for frame in frames:
 			if frame['d']:
 				for result in frame['d']:
 					if result['n'] == '#':
 						for action in result['p']:
 							score[action['n']] = max(score[action['n']], action['c'])
-			last_frame = frame["f"]
 		if score['p1'] > score['p2']:
 			win_from_map[map]['first'] += 1
 			win1 += 1
@@ -143,8 +144,8 @@ def get_score():
 			win1 += 0.5
 			win2 += 0.5
 		diff_from_map[map]['scores'].append(score['p1'] - score['p2'])
-		print(f"Coins: {score['p1']}: {score['p2']}", file=sys.stderr, flush=True)
-		print(f"Wins: {win1}: {win2}", file=sys.stderr, flush=True)
+		print(f"Coins: {score['p1']} : {score['p2']}", file=sys.stderr, flush=True)
+		print(f"Wins: {win1} : {win2}", file=sys.stderr, flush=True)
 		print(f"Ticks: {last_frame}", file=sys.stderr, flush=True)
 
 
@@ -155,6 +156,6 @@ for i in range(10000):
 	except:
 		time.sleep(1)
 	print(i, file=sys.stderr, flush=True)
-	print(win_from_map, flush=True)
+	print(json.dumps(win_from_map, indent=4), flush=True)
 	if i % 10 == 0:
-		print(diff_from_map, flush=True)
+		print(json.dumps(diff_from_map, indent=4), flush=True)
