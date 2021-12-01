@@ -1,4 +1,5 @@
 import requests
+import json
 
 bad_cells = {}
 hash_to_map = {}
@@ -48,6 +49,13 @@ def update_bad_cells(res):
 				bad_cells[cur_hash][(x, y)] = 1
 
 
+def print_json_game(id):
+	link = f"https://s3.alem.school/storage/gamesessions/{id}.json"
+	res = parse_game(link)
+	with open("debug.json", "w") as out:
+		out.write(json.dumps(res, indent=4))
+
+
 def parse_page(page):
 	team_id = 111
 	url = f"https://cup.alem.school/api/arena/last_games/{team_id}?skip={(page - 1) * 5}&limit=10"
@@ -88,6 +96,9 @@ def parse_page(page):
 
 # link = "https://s...content-available-to-author-only...m.school/storage/gamesessions/c609d882-4627-475d-9141-7f85ebaf2117.json"
 # res = update_bad_cells(parse_game(link))
+
+print_json_game("32878d7e-0f8b-4f42-9689-0b57fd088e52")
+exit()
 
 page = 1
 while True:

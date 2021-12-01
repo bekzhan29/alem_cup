@@ -114,8 +114,8 @@ def get_score():
 
 	logs_url = f"https://s3.alem.school/storage/gamesessions/{key}.json"
 	res = requests.get(logs_url)
-	# with open("answer.json", "w") as out:
-	# 	out.write(str(json.dumps(res.json(), indent=4)))
+	with open("answer.json", "w") as out:
+		out.write(str(json.dumps(res.json(), indent=4)))
 	score = {"p1": 0, "p2": 0}
 	if res.status_code == 200:
 		frames = res.json()['frames']
