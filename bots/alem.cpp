@@ -355,7 +355,7 @@ bool is_safe(int x, int y) {
     //     return (d[MONSTERS][x][y] > 2);
     if (safe_cells[map_id][x][y] || dagger_left > 3)
         return 1;
-    if (player_id == 2 && bonus_type == 2 && bonus_left > 3 && d[MONSTERS][x][y] > 0)
+    if (bonus_type == 2 && bonus_left > 3 && d[MONSTERS][x][y] > 0)
         return 1;
     return is_safe1(x, y);
 }
@@ -422,8 +422,6 @@ void calculate_weights() {
 }
 
 void kill_enemy() {
-    if (player_id != 2)
-        return;
     if (ans != NO_ANSWER || bonus_type != 2 || enemy_bonus_type == 3)
         return;
     if (!enemy_alive || dist(px, py, ex, ey) != 2 || safe_cells[map_id][ex][ey])
@@ -451,7 +449,7 @@ void go_to_bonus(ll type) {
     for (pll bonus:bonuses[type]) {
         ch |= check_time(bonus);
     }
-    if (player_id == 2 && !ch)
+    if (!ch)
         return;
     if (!bonuses[type].empty()) {
         for (pll bonus:bonuses[type]) {
@@ -483,7 +481,7 @@ void go_to_dagger() {
     for (pll dagger:daggers) {
         ch |= check_time(dagger);
     }
-    if (player_id == 2 && !ch)
+    if (!ch)
         return;
     if (go_dagger && !monsters.empty() && !daggers.empty()) {
         for (pll dagger:daggers) {
