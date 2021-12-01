@@ -1042,7 +1042,7 @@ int main()
         for (pll dagger:daggers) {
             x = dagger.fi;
             y = dagger.se;
-            if (d[US][x][y] < time_left[x][y]) {
+            if (d[US][x][y] < d[MONSTERS][x][y] && d[US][x][y] < time_left[x][y]) {
                 q[DAGGERS].push({x, y});
                 d[DAGGERS][x][y] = 0;
             }
