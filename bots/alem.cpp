@@ -461,19 +461,13 @@ void go_to_dagger() {
     if (ans != NO_ANSWER || d[DAGGERS][px][py] >= 300 - tick)
         return;
     if (go_dagger && !monsters.empty() && !daggers.empty()) {
-        for (pll dagger:daggers) {
-            x = dagger.fi;
-            y = dagger.se;
-            if ((d[DAGGERS][px][py] < d[MONSTERS][x][y] || d[MONSTERS][px][py] > 4) && d[DAGGERS][px][py] < 15) {
-                shuffle(ord, ord + 4, rnd);
-                for (ll j = 0; j < 4; j++) {
-                    ll i = ord[j], tx = px + dx[i], ty = py + dy[i];
-                    if (in_box(tx, ty) && d[DAGGERS][tx][ty] + 1 == d[DAGGERS][px][py] && is_safe(tx, ty)) {
-                        ans = i;
-                        if (!silent_mode) {
-                            cerr << "Moving towards dagger" << endl;
-                        }
-                    }
+        shuffle(ord, ord + 4, rnd);
+        for (ll j = 0; j < 4; j++) {
+            ll i = ord[j], tx = px + dx[i], ty = py + dy[i];
+            if (in_box(tx, ty) && d[DAGGERS][tx][ty] + 1 == d[DAGGERS][px][py] && is_safe(tx, ty)) {
+                ans = i;
+                if (!silent_mode) {
+                    cerr << "Moving towards bonus" << endl;
                 }
             }
         }
