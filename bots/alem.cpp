@@ -749,7 +749,6 @@ int main()
     for (;;) {
         cin >> m >> n >> player_id >> tick;
         cerr << n << " " << m << " " << player_id << " " << tick << endl;
-        if(super_last_update_maps()) DEC_PW = 1.7;
         // if(player_id == 2) {
         // } else DEC_PW = 1.8;
         block_monsters = 1;
@@ -826,6 +825,8 @@ int main()
                 }
             }
         }
+        if(super_last_update_maps()) DEC_PW = 1.7;
+
         if (player_id <= 2) {
             int cx = n / 2;
             int cy = m / 2;
