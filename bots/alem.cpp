@@ -275,26 +275,6 @@ void init(ll a[N][N], plll b) {
             a[i][j] = decoded[i][j];
 }
 
-bool bad_cell(ll type, ll x, ll y) {
-    if (!in_box(x, y) || c[x][y] == '!')
-        return 1;
-    if (type != MONSTERS && (map_id == 4 || map_id == 10) && x >= 4 && x <= 6)
-    {
-        if (monsters.empty())
-            return 0;
-        if (monsters.size() == 2 && (y == 2 || y == 10))
-            return 1;
-        if (monsters.size() == 1 && y == 2 && monsters[0].se < 6)
-            return 1;
-        if (monsters.size() == 1 && y == 10 && monsters[0].se > 6)
-            return 1;
-        return 0;
-    }
-    if (type != MONSTERS && monsters.size() == 2 && map_id == 2 && y == 6 && (x == 3 || x == 7))
-        return 1;
-    return 0;
-}
-
 void bfs(ll cur, bool is_coin = false) {
     ll x, y, tx, ty;
     for (; !q[cur].empty();) {
@@ -314,7 +294,6 @@ void bfs(ll cur, bool is_coin = false) {
 
             if (cur != MONSTERS && monsters.size() == 2 && map_id == 2 && ty == 6 && (tx == 3 || tx == 7))
                 continue;
-
             if (in_box(tx, ty) && c[tx][ty] != '!')
                 if (d[cur][tx][ty] > d[cur][x][y] + 1) {
                     d[cur][tx][ty] = d[cur][x][y] + 1;
@@ -375,8 +354,6 @@ bool is_safe(int x, int y) {
     // if (beast_mode && are_you_sure && player_id == 2)
     //     return (d[MONSTERS][x][y] > 2);
     if (safe_cells[map_id][x][y] || dagger_left > 3)
-        return 1;
-    if (map_id == 9 && bonus_type == 2 && bonus_left > 3 && d[MONSTERS][x][y] > 0)
         return 1;
     return is_safe1(x, y);
 }
@@ -531,7 +508,7 @@ void go_kill() {
 
 inline void init_dec_pw() {
     if (last_update_maps()) DEC_PW = 1.4;
-    else DEC_PW = 1.2;
+    else DEC_PW = 1.3;
 }
 
 double cost[N][N];
@@ -648,8 +625,7 @@ void go_brute_force()
 }
 
 void run_away() {
-    // REMOVE
-    if (ans == NO_ANSWER && map_id != 4 && map_id != 10) {
+    if (ans == NO_ANSWER) {
         shuffle(ord, ord + 4, rnd);
         for (ll j = 0; j <= 4; j++) {
             ll i = ord[j];
@@ -658,7 +634,7 @@ void run_away() {
             if (in_box(x, y) && c[x][y] != '!' && safe_cells[map_id][x][y]) {
                 ans = i;
                 if (!silent_mode) {
-                    cerr << "Moving towards safe cell " << x << " " << y << endl;
+                    cerr << "Moving towards safe column " << x << " " << y << endl;
                 }
             }
         }
@@ -672,8 +648,7 @@ void run_away() {
             y = py + dy[i];
             if (in_box(x, y) && c[x][y] != '!')
                 if (neighbors[x][y] > 1 && is_safe(x, y)) {
-                    if ((map_id == 4 || map_id == 10) && (ans == NO_ANSWER || d[COINS][x][y] < d[COINS][px + dx[ans]][py + dy[ans]]))
-                        ans = i;
+                    ans = i;
                     if (!silent_mode) {
                         cerr << "Moving away from monster to safe cell: " << x << " " << y << endl;
                     }
@@ -759,6 +734,10 @@ inline void make_costs(int x, int y, double multi) {
                 cost[i][j] += multi * pow(DEC_PW, -dc[i][j]);
 }
 
+inline int super_last_update_maps() {
+    return map_id == 1 || map_id == 4 || map_id == 6 || map_id == 8 || map_id == 9 || map_id == 10;
+}
+
 int main()
 {
     for (ll i = 0; i < m; i++)
@@ -770,6 +749,7 @@ int main()
     for (;;) {
         cin >> m >> n >> player_id >> tick;
         cerr << n << " " << m << " " << player_id << " " << tick << endl;
+        if(super_last_update_maps()) DEC_PW = 1.7;
         // if(player_id == 2) {
         // } else DEC_PW = 1.8;
         block_monsters = 1;
@@ -1120,7 +1100,11 @@ int main()
             go_dagger = 0;
         }
 
-        // kill_enemy();
+        kill_enemy();
+
+        // try to go to a freeze
+        // if (player_id == 2)
+        // go_to_bonus(FREEZE);
 
         // try to go to an immune
         // go_to_bonus(IMMUNE);
@@ -1128,15 +1112,12 @@ int main()
         // try to go to a bonus
         go_to_bonus(BONUSES);
 
-        // try to go to a freeze
-        if (map_id == 9 && d[FREEZE][px][py] <= 7 && bonus_left < d[FREEZE][px][py])
-            go_to_bonus(FREEZE);
-
         // try to go to a dagger
         go_to_dagger();
 
         // try to kill a monster
         go_kill();
+        if(super_last_update_maps()) go_to_cost_coin();
 
         if (player_id <= 2)
         {
