@@ -445,13 +445,30 @@ bool check_time(pll item) {
 void go_to_bonus(ll type) {
     if (ans != NO_ANSWER || d[type][px][py] >= 300 - tick)
         return;
-    shuffle(ord, ord + 4, rnd);
-    for (ll j = 0; j < 4; j++) {
-        ll i = ord[j], tx = px + dx[i], ty = py + dy[i];
-        if (in_box(tx, ty) && d[type][tx][ty] + 1 == d[type][px][py] && is_safe(tx, ty)) {
-            ans = i;
-            if (!silent_mode) {
-                cerr << "Moving towards bonus" << endl;
+    ll ch = 0;
+    for (pll bonus:bonuses[type]) {
+        ch |= check_time(bonus);
+    }
+    if (!ch)
+        return;
+    if (!bonuses[type].empty()) {
+        for (pll bonus:bonuses[type]) {
+            x = bonus.fi;
+            y = bonus.se;
+            // TODO: maybe change
+            if ((d[type][px][py] < d[MONSTERS][x][y] || d[MONSTERS][px][py] > 4) && d[type][px][py] <= 10 &&
+                (!last_update_maps() || d[type][px][py] <= 10 && d[COINS][x][y] <= 10 &&
+                                        d[COINS][x][y] + d[type][px][py] + tick <= 290)) {
+                shuffle(ord, ord + 4, rnd);
+                for (ll j = 0; j < 4; j++) {
+                    ll i = ord[j], tx = px + dx[i], ty = py + dy[i];
+                    if (in_box(tx, ty) && d[type][tx][ty] + 1 == d[type][px][py] && is_safe(tx, ty)) {
+                        ans = i;
+                        if (!silent_mode) {
+                            cerr << "Moving towards bonus" << endl;
+                        }
+                    }
+                }
             }
         }
     }
@@ -460,14 +477,26 @@ void go_to_bonus(ll type) {
 void go_to_dagger() {
     if (ans != NO_ANSWER || d[DAGGERS][px][py] >= 300 - tick)
         return;
+    ll ch = 0;
+    for (pll dagger:daggers) {
+        ch |= check_time(dagger);
+    }
+    if (!ch)
+        return;
     if (go_dagger && !monsters.empty() && !daggers.empty()) {
-        shuffle(ord, ord + 4, rnd);
-        for (ll j = 0; j < 4; j++) {
-            ll i = ord[j], tx = px + dx[i], ty = py + dy[i];
-            if (in_box(tx, ty) && d[DAGGERS][tx][ty] + 1 == d[DAGGERS][px][py] && is_safe(tx, ty)) {
-                ans = i;
-                if (!silent_mode) {
-                    cerr << "Moving towards bonus" << endl;
+        for (pll dagger:daggers) {
+            x = dagger.fi;
+            y = dagger.se;
+            if ((d[DAGGERS][px][py] < d[MONSTERS][x][y] || d[MONSTERS][px][py] > 4) && d[DAGGERS][px][py] < 15) {
+                shuffle(ord, ord + 4, rnd);
+                for (ll j = 0; j < 4; j++) {
+                    ll i = ord[j], tx = px + dx[i], ty = py + dy[i];
+                    if (in_box(tx, ty) && d[DAGGERS][tx][ty] + 1 == d[DAGGERS][px][py] && is_safe(tx, ty)) {
+                        ans = i;
+                        if (!silent_mode) {
+                            cerr << "Moving towards dagger" << endl;
+                        }
+                    }
                 }
             }
         }
@@ -740,6 +769,26 @@ inline bool is_bonus_or_dagger(char c)
     return (c == 'b' || c == 'f' || c == 'i' || c == 'd');
 }
 
+void destroy_local_maxes() {
+    ll x, y, cnt = 0;
+    double sum = 0;
+    for (ll i = 0; i < n; i++)
+        for (ll j = 0; j < m; j++) {
+            double mx = 0;
+            for (ll dir = 0; dir < 4; dir++) {
+                x = i + dx[dir];
+                y = j + dy[dir];
+                if (!in_box(x, y) || c[x][y] =='!')
+                    continue;
+                mx = max(mx, cost[x][y]);
+                cnt++;
+                sum += cost[x][y];
+            }
+            if (cost[i][j] >= mx)
+                cost[i][j] = sum / cnt;
+        }
+}
+
 int main()
 {
     for (ll i = 0; i < m; i++)
@@ -780,26 +829,26 @@ int main()
                 near_monster[i][j] = 0;
                 // dagger
                 if (c[i][j] == 'd') {
-                    // d[DAGGERS][i][j] = 0;
-                    // q[DAGGERS].push({i, j});
+                    d[DAGGERS][i][j] = 0;
+                    q[DAGGERS].push({i, j});
                     daggers.pb({i, j});
                 }
                 // bonus
                 if (c[i][j] == 'b') {
-                    // d[BONUSES][i][j] = 0;
-                    // q[BONUSES].push({i, j});
+                    d[BONUSES][i][j] = 0;
+                    q[BONUSES].push({i, j});
                     bonuses[BONUSES].pb({i, j});
                 }
                 // freeze
                 if (c[i][j] == 'f') {
-                    // d[FREEZE][i][j] = 0;
-                    // q[FREEZE].push({i, j});
+                    d[FREEZE][i][j] = 0;
+                    q[FREEZE].push({i, j});
                     bonuses[FREEZE].pb({i, j});
                 }
                 // immune
                 if (c[i][j] == 'i') {
-                    // d[IMMUNE][i][j] = 0;
-                    // q[IMMUNE].push({i, j});
+                    d[IMMUNE][i][j] = 0;
+                    q[IMMUNE].push({i, j});
                     bonuses[IMMUNE].pb({i, j});
                 }
                 // coin
@@ -1028,25 +1077,6 @@ int main()
             return d[SAFE][xa][ya] < d[SAFE][xb][yb] ||
                    d[SAFE][xa][ya] == d[SAFE][xb][yb] && d[US][xa][ya] < d[US][xb][yb];
         });
-        for (ll type = BONUSES; type <= IMMUNE; type++) {
-            for (pll bonus:bonuses[type]) {
-                x = bonus.fi;
-                y = bonus.se;
-                if (d[US][x][y] < time_left[x][y] && 
-                    d[COINS][x][y] + d[US][x][y] + tick <= 295) {
-                    q[type].push({x, y});
-                    d[type][x][y] = 0;
-                }
-            }
-        }
-        for (pll dagger:daggers) {
-            x = dagger.fi;
-            y = dagger.se;
-            if (d[US][x][y] < d[MONSTERS][x][y] && d[US][x][y] < time_left[x][y]) {
-                q[DAGGERS].push({x, y});
-                d[DAGGERS][x][y] = 0;
-            }
-        }
         if (monsters.size() == 2 && (map_id == 1 || map_id == 4 || map_id == 8)) {
             for (auto coin: all) {
                 ll i = coin.fi, j = coin.se;
@@ -1123,6 +1153,8 @@ int main()
             }
 //            if(enemy_alive) make_costs(ex, ey,-0.5);
         }
+
+        destroy_local_maxes();
 
 
         ans = NO_ANSWER;
