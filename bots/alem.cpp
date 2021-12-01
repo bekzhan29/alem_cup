@@ -740,6 +740,26 @@ inline bool is_bonus_or_dagger(char c)
     return (c == 'b' || c == 'f' || c == 'i' || c == 'd');
 }
 
+void destroy_local_maxes() {
+    ll x, y, cnt = 0;
+    double sum = 0;
+    for (ll i = 0; i < n; i++)
+        for (ll j = 0; j < m; j++) {
+            double mx = 0;
+            for (ll dir = 0; dir < 4; dir++) {
+                x = i + dx[dir];
+                y = j + dy[dir];
+                if (!in_box(x, y) || c[x][y] =='!')
+                    continue;
+                mx = max(mx, cost[x][y]);
+                cnt++;
+                sum += cost[x][y];
+            }
+            if (cost[i][j] >= mx)
+                cost[i][j] = sum / cnt;
+        }
+}
+
 int main()
 {
     for (ll i = 0; i < m; i++)
@@ -1123,6 +1143,8 @@ int main()
             }
 //            if(enemy_alive) make_costs(ex, ey,-0.5);
         }
+
+        destroy_local_maxes();
 
 
         ans = NO_ANSWER;

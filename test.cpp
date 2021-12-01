@@ -1131,6 +1131,7 @@ int main()
         }
 
         if (!silent_mode) {
+            cerr.precision(3);
             for (ll i = 0; i < n; i++, cerr << endl)
                 for (ll j = 0; j < m; j++)
                     cerr << cost[i][j] << " ";
