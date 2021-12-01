@@ -1141,7 +1141,7 @@ int main()
         cerr << "Bonus left: " << bonus_left << endl;
 
         go_dagger = 0;
-        if (enemy_alive == 0 || (tick - last_coin > 35 && our_score - 3 <= enemy_score)) {
+        if (enemy_alive == 0 || (tick - last_coin > 20 && our_score - 3 <= enemy_score)) {
             go_dagger = 1;
         }
         if (monsters.empty()) {
