@@ -784,7 +784,7 @@ void destroy_local_maxes() {
                 cnt++;
                 sum += cost[x][y];
             }
-            if (cost[i][j] >= mx)
+            if (cost[i][j] >= mx && c[i][j] != '#')
                 cost[i][j] = sum / cnt;
         }
 }
@@ -1154,7 +1154,8 @@ int main()
 //            if(enemy_alive) make_costs(ex, ey,-0.5);
         }
 
-        destroy_local_maxes();
+        if (player_id == 2)
+            destroy_local_maxes();
 
 
         ans = NO_ANSWER;
