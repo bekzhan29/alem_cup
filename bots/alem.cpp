@@ -754,7 +754,7 @@ int main() {
             ll x = i, y = j;
             bool bad = map_id != 8 && map_id != 4 && map_id != 7 && map_id != 9 && map_id != 3 && map_id != 5 && map_id != 1;
             ll cx = n / 2, cy = m / 2;
-            if(cx - 1 <= i && i <= cx + 1 && cy - 1 <= j && j <= cy + 1 && !safe_cells[map_id][i][j]) bad &= 1;
+            if(!(cx - 1 <= i && i <= cx + 1 && cy - 1 <= j && j <= cy + 1 && !safe_cells[map_id][i][j])) bad = 0;
             if(map_id == 1 && (x == 0 || x == n - 1) && y == m / 2)
                 bad = 1;
             if(map_id == 2 && (x == 1 || x == n - 2) && y == m / 2) bad = 1;
