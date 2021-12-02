@@ -551,7 +551,7 @@ void go_to_coin() {
         }
         return;
     }
-    if (last_update_maps()) {
+    if (last_update_maps() || true) {
 //        if(player_id == 1)
 
         go_to_cost_coin();
@@ -862,6 +862,7 @@ int main()
         print_map(map_id);
 
         if(map_id == 4 || map_id == 6 || map_id == 8 || map_id == 9 || map_id == 10) DEC_PW = 1.7;
+        if(map_id != 7 && map_id != 8) DEC_PW = 2.2;
 
         // count empty neighbors
         count_empty_neighbors();
