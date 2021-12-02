@@ -379,7 +379,7 @@ void count_empty_neighbors() {
 
 inline bool last_update_maps() {
     if(map_id == 1) return false;
-    if(map_id == 4 || map_id == 6) return true;
+    if(map_id == 4 || map_id == 6 || map_id == 8 || map_id == 9 || map_id == 10) return true;
     return map_id == 1 || map_id == 2 || map_id == 3 || map_id == 5 || map_id == 7;
 }
 
@@ -861,7 +861,7 @@ int main()
 
         print_map(map_id);
 
-        if(map_id == 4 || map_id == 6) DEC_PW = 1.7;
+        if(map_id == 4 || map_id == 6 || map_id == 8 || map_id == 9 || map_id == 10) DEC_PW = 1.7;
 
         // count empty neighbors
         count_empty_neighbors();
