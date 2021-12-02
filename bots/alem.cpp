@@ -193,7 +193,7 @@ void bfs(ll cur, bool is_coin = false) {
         for (ll i = 0; i < 4; i++) {
             tx = x + dx[i];
             ty = y + dy[i];
-            if(!is_safe(tx, ty) && cur == COINS) continue;
+            if(!is_safe(tx, ty) && d[MONSTERS][tx][ty] <= 2 && cur == COINS) continue;
 
             if (in_box(tx, ty) && c[tx][ty] != '!')
                 if (d[cur][tx][ty] > d[cur][x][y] + 1) {
@@ -486,7 +486,7 @@ void run_away() {
                     }
         }
     }
-    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && (ans == STAY || ans == NO_ANSWER)) {
+    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && (ans == STAY && !is_safe(px, py) || ans == NO_ANSWER)) {
         for (pll monster:monsters) {
             x = monster.fi;
             y = monster.se;
