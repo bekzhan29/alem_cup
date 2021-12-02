@@ -786,7 +786,7 @@ void destroy_local_maxes() {
                     cnt++;
                     sum += cost[x][y];
                 }
-                if (cost[i][j] >= mx && c[i][j] != '#')
+                if (cost[i][j] >= mx && c[i][j] != '#' && cnt > 0)
                     cost[i][j] = sum / cnt;
             }
 }

@@ -1156,7 +1156,7 @@ int main()
 //            if(enemy_alive) make_costs(ex, ey,-0.5);
         }
 
-        if (player_id == 2)
+        if (player_id <= 2)
             destroy_local_maxes();
 
 
