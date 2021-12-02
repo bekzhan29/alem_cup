@@ -400,17 +400,7 @@ void go_to_coin() {
     if (ans != NO_ANSWER)
         return;
     if (cnt_coins <= 1 && our_score > enemy_score + 1 && enemy_alive) {
-        x = pr[START][px][py].fi;
-        y = pr[START][px][py].se;
-        if (in_box(x, y) && c[x][y] != '!' && is_safe(x, y)) {
-            for (ll i = 0; i < 4; i++)
-                if (px + dx[i] == x && py + dy[i] == y)
-                    ans = i;
-        } else if (x == -1 && y == -1 && is_safe(px, py)) {
-            cerr << "Pears" << endl;
-            ans = STAY;
-        }
-        return;
+        if(is_safe(px, py)) ans = STAY;
     }
     x = pr[COINS][px][py].fi;
     y = pr[COINS][px][py].se;
@@ -497,7 +487,7 @@ void run_away() {
             for(int j = 0; j < 4; ++j) {
                 ll nx = x + dx[j];
                 ll ny = y + dy[j];
-                if(d[MONSTERS][nx][ny] < d[MONSTERS][x][y] && !safe_cells[map_id][nx][ny]) {
+                if(d[US][nx][ny] < d[US][x][y] && !safe_cells[map_id][nx][ny]) {
                     x = nx;
                     y = ny;
                     break;
@@ -761,9 +751,16 @@ int main() {
 
         for (pll coin:coins) {
             ll i = coin.fi, j = coin.se;
-            bool bad = map_id != 8 && map_id != 4 && map_id != 6 && map_id != 7;
+            ll x = i, y = j;
+            bool bad = map_id != 8 && map_id != 4 && map_id != 7 && map_id != 9 && map_id != 3 && map_id != 5;
             ll cx = n / 2, cy = m / 2;
             if(cx - 1 <= i && i <= cx + 1 && cy - 1 <= j && j <= cy + 1 && !safe_cells[map_id][i][j]) bad &= 1;
+            if(map_id == 1 && (x == 0 || x == n - 1) && y == m / 2)
+                bad = 1;
+            if(map_id == 2 && (x == 1 || x == n - 2) && y == m / 2) bad = 1;
+            if(map_id == 3 && (x == 0 && y == 0 || x == n - 1 && y == m - 1)) bad = 1;
+            if(map_id == 4 && (y == 1 || y == m - 2)) bad = 1;
+            if(map_id == 8 && (y == 1 && x == n - 2  || y == m - 2 && x == 1)) bad = 1;
             // good coin
             if (d[US][i][j] <= d[ENEMY][i][j] && !bad) {
                 d[COINS][i][j] = 0;
@@ -827,6 +824,7 @@ int main() {
         last_coins = cnt_coins;
 
         go_to_bonus(BONUSES);
+        if(d[IMMUNE][px][py] <= 5 && bonus_left < d[IMMUNE][px][py]) go_to_bonus(IMMUNE);
         go_to_dagger();
 
         // try to kill a monster
