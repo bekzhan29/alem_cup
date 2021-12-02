@@ -39,7 +39,7 @@ bool block_monsters = 0;
 vector<pll> daggers, bonuses[K], monsters, coins;
 queue<pll> q[K];
 char c[N][N], lc[N][N], start_c[N][N];
-ll bad_angle[N][N], near_monster[N][N], weight[N][N], time_left[N][N];
+ll bad_angle[N][N], near_monster[N][N], weight[N][N];
 string s[5] = {"right", "down", "left", "up", "stay"};
 bool enemy_alive, go_dagger, left_right, lleft, rright;
 ll last_coin = -1, cnt_maps, last_cnt_maps, map_id, bonus_type, enemy_bonus_type;
@@ -289,7 +289,7 @@ void bfs(ll cur, bool is_coin = false) {
                 if (dist({tx, ty}, M) <= 1)
                     fail = 1;
             }
-            if (fail && block_monsters && is_coin && dagger_left <= 3)
+            if (fail && block_monsters && is_coin)
                 continue;
 
             if (cur != MONSTERS && monsters.size() == 2 && map_id == 2 && ty == 6 && (tx == 3 || tx == 7))
@@ -355,8 +355,6 @@ bool is_safe(int x, int y) {
     //     return (d[MONSTERS][x][y] > 2);
     if (safe_cells[map_id][x][y] || dagger_left > 3)
         return 1;
-    if (bonus_type == 2 && bonus_left > 3 && d[MONSTERS][x][y] > 0)
-        return 1;
     return is_safe1(x, y);
 }
 
@@ -381,6 +379,7 @@ void count_empty_neighbors() {
 
 inline bool last_update_maps() {
     if(map_id == 1) return false;
+    if(map_id == 4 || map_id == 6) return true;
     return map_id == 1 || map_id == 2 || map_id == 3 || map_id == 5 || map_id == 7;
 }
 
@@ -422,6 +421,8 @@ void calculate_weights() {
 }
 
 void kill_enemy() {
+    if (player_id != 2)
+        return;
     if (ans != NO_ANSWER || bonus_type != 2 || enemy_bonus_type == 3)
         return;
     if (!enemy_alive || dist(px, py, ex, ey) != 2 || safe_cells[map_id][ex][ey])
@@ -436,20 +437,8 @@ void kill_enemy() {
     }
 }
 
-bool check_time(pll item) {
-    x = item.fi;
-    y = item.se;
-    return (d[US][x][y] < time_left[x][y]);
-}
-
 void go_to_bonus(ll type) {
     if (ans != NO_ANSWER || d[type][px][py] >= 300 - tick)
-        return;
-    ll ch = 0;
-    for (pll bonus:bonuses[type]) {
-        ch |= check_time(bonus);
-    }
-    if (!ch)
         return;
     if (!bonuses[type].empty()) {
         for (pll bonus:bonuses[type]) {
@@ -476,12 +465,6 @@ void go_to_bonus(ll type) {
 
 void go_to_dagger() {
     if (ans != NO_ANSWER || d[DAGGERS][px][py] >= 300 - tick)
-        return;
-    ll ch = 0;
-    for (pll dagger:daggers) {
-        ch |= check_time(dagger);
-    }
-    if (!ch)
         return;
     if (go_dagger && !monsters.empty() && !daggers.empty()) {
         for (pll dagger:daggers) {
@@ -526,7 +509,7 @@ void go_kill() {
 
 inline void init_dec_pw() {
     if (last_update_maps()) DEC_PW = 1.4;
-    else DEC_PW = 1.3;
+    else DEC_PW = 1.2;
 }
 
 double cost[N][N];
@@ -542,24 +525,16 @@ inline void go_to_cost_coin() {
         y = py + dy[i];
         if (in_box(x, y) && c[x][y] != '!' && is_safe(x, y))
             if (ans == NO_ANSWER || cost[x][y] > cost[px + dx[ans]][py + dy[ans]] ||
-                (cost[x][y] == cost[px + dx[ans]][py + dy[ans]] &&
-                d[COINS][x][y] < d[COINS][px + dx[ans]][py + dy[ans]]))
+                cost[x][y] == cost[px + dx[ans]][py + dy[ans]] &&
+                d[COINS][x][y] < d[COINS][px + dx[ans]][py + dy[ans]])
                 ans = i;
     }
-    if (cost[px + dx[ans]][py + dy[ans]] < cost[px][py])
-        ans = NO_ANSWER;
+    if (cost[px + dx[ans]][py + dy[ans]] < cost[px][py]) ans = NO_ANSWER;
+    if (ans != NO_ANSWER)
+        return;
+
 }
 
-/*
-k:3
-p 2 2 8 1 0
-m 0 4 8 0 0
-p 1 10 9 0 0
-Player pos: 2 8
-Enemy pos: 10 9
-Dagger left: 15
-Bonuse left: 0
-*/
 void go_to_coin() {
     if (ans != NO_ANSWER)
         return;
@@ -702,7 +677,7 @@ void run_away() {
                     }
         }
     }
-    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && (ans == STAY || ans == NO_ANSWER) && !safe_cells[map_id][px][py]) {
+    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && (ans == STAY || ans == NO_ANSWER) && !safe_cells[map_id][px][py] && player_id == 2) {
         for (pll monster:monsters) {
             x = monster.fi;
             y = monster.se;
@@ -758,37 +733,6 @@ inline void make_costs(int x, int y, double multi) {
         for (int j = 0; j < m; ++j)
             if (dc[i][j] < INF)
                 cost[i][j] += multi * pow(DEC_PW, -dc[i][j]);
-}
-
-inline int super_last_update_maps() {
-    return map_id == 1 || map_id == 4 || map_id == 6 || map_id == 8 || map_id == 9 || map_id == 10;
-}
-
-inline bool is_bonus_or_dagger(char c)
-{
-    return (c == 'b' || c == 'f' || c == 'i' || c == 'd');
-}
-
-void destroy_local_maxes() {
-    ll x, y, cnt;
-    double sum, mx;
-    for (ll r = 1; r <= 50; r++)
-        for (ll i = 0; i < n; i++)
-            for (ll j = 0; j < m; j++) {
-                mx = sum = 0;
-                cnt = 0;
-                for (ll dir = 0; dir < 4; dir++) {
-                    x = i + dx[dir];
-                    y = j + dy[dir];
-                    if (!in_box(x, y) || c[x][y] =='!')
-                        continue;
-                    mx = max(mx, cost[x][y]);
-                    cnt++;
-                    sum += cost[x][y];
-                }
-                if (cost[i][j] >= mx && c[i][j] != '#' && cnt > 0)
-                    cost[i][j] = sum / cnt;
-            }
 }
 
 int main()
@@ -858,14 +802,6 @@ int main()
                     cnt_coins++;
                     coins.pb({i, j});
                 }
-                if (is_bonus_or_dagger(c[i][j])) {
-                    if (time_left[i][j] == 0)
-                        time_left[i][j] = 15;
-                    else
-                        time_left[i][j]--;
-                }
-                else
-                    time_left[i][j] = 0;
             }
         }
         cerr << endl;
@@ -886,8 +822,6 @@ int main()
                 }
             }
         }
-        if(super_last_update_maps()) DEC_PW = 1.7;
-
         if (player_id <= 2) {
             int cx = n / 2;
             int cy = m / 2;
@@ -929,6 +863,8 @@ int main()
 
         print_map(map_id);
 
+        if(map_id == 4 || map_id == 6) DEC_PW = 1.7;
+
         // count empty neighbors
         count_empty_neighbors();
 
@@ -960,8 +896,6 @@ int main()
                         dagger_left = 15;
                     else
                         dagger_left--;
-                    if (!param_1)
-                        dagger_left = 0;
                     dagger_left = max(dagger_left, 0LL);
                     if (lc[px][py] == 'b' && param_2 == 1)
                         bonus_left = 30;
@@ -971,8 +905,6 @@ int main()
                         bonus_left = 15;
                     else
                         bonus_left--;
-                    if (!param_2)
-                        bonus_left = 0;
                     bonus_left = max(bonus_left, 0LL);
                     bonus_type = param_2;
                 }
@@ -992,8 +924,6 @@ int main()
                         enemy_bonus_left = 15;
                     else
                         enemy_bonus_left--;
-                    if (!param_2)
-                        enemy_bonus_left = 0;
                     enemy_bonus_left = max(enemy_bonus_left, 0LL);
                     enemy_bonus_type = param_2;
                 }
@@ -1148,25 +1078,20 @@ int main()
             bfs(START);
         }
         if (last_update_maps()) {
-            if (dagger_left <= 2) {
-                for (auto &x : monsters) {
-                    make_costs(x.first, x.second, -1);
-                }
+            for (auto &x : monsters) {
+                make_costs(x.first, x.second, -1);
             }
 //            if(enemy_alive) make_costs(ex, ey,-0.5);
         }
-
-        if (player_id == 2)
-            destroy_local_maxes();
 
 
         ans = NO_ANSWER;
 
         cerr << "Dagger left: " << dagger_left << endl;
-        cerr << "Bonus left: " << bonus_left << endl;
+        cerr << "Bonuse left: " << bonus_left << endl;
 
         go_dagger = 0;
-        if (enemy_alive == 0 || (tick - last_coin > 20 && our_score - 3 <= enemy_score)) {
+        if (enemy_alive == 0 || (tick - last_coin > 35 && our_score - 3 <= enemy_score)) {
             go_dagger = 1;
         }
         if (monsters.empty()) {
@@ -1190,7 +1115,6 @@ int main()
 
         // try to kill a monster
         go_kill();
-        if(super_last_update_maps()) go_to_cost_coin();
 
         if (player_id <= 2)
         {
