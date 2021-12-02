@@ -421,8 +421,6 @@ void calculate_weights() {
 }
 
 void kill_enemy() {
-    if (player_id != 2)
-        return;
     if (ans != NO_ANSWER || bonus_type != 2 || enemy_bonus_type == 3)
         return;
     if (!enemy_alive || dist(px, py, ex, ey) != 2 || safe_cells[map_id][ex][ey])
@@ -677,7 +675,7 @@ void run_away() {
                     }
         }
     }
-    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && (ans == STAY || ans == NO_ANSWER) && !safe_cells[map_id][px][py] && player_id == 2) {
+    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && (ans == STAY || ans == NO_ANSWER) && !safe_cells[map_id][px][py]) {
         for (pll monster:monsters) {
             x = monster.fi;
             y = monster.se;
