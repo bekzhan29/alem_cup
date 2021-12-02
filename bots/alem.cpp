@@ -193,7 +193,7 @@ void bfs(ll cur, bool is_coin = false) {
         for (ll i = 0; i < 4; i++) {
             tx = x + dx[i];
             ty = y + dy[i];
-            if(!is_safe(tx, ty) && d[MONSTERS][tx][ty] <= 2 && cur == COINS) continue;
+            if(!is_safe(tx, ty) && d[MONSTERS][tx][ty] <= 1 && cur == COINS) continue;
 
             if (in_box(tx, ty) && c[tx][ty] != '!')
                 if (d[cur][tx][ty] > d[cur][x][y] + 1) {
@@ -339,10 +339,11 @@ void go_to_bonus(ll type) {
     for (ll j = 0; j < 4; j++) {
         ll i = ord[j], tx = px + dx[i], ty = py + dy[i];
         if (in_box(tx, ty) && d[type][tx][ty] + 1 == d[type][px][py] && is_safe(tx, ty)) {
-            if(ans == NO_ANSWER || better(tx, ty))
+            if(ans == NO_ANSWER || better(tx, ty)) {
                 ans = i;
-            if (!silent_mode) {
-                cerr << "Moving towards bonus" << endl;
+                if (!silent_mode) {
+                    cerr << "Moving towards bonus" << endl;
+                }
             }
         }
     }
@@ -356,10 +357,11 @@ void go_to_dagger() {
         for (ll j = 0; j < 4; j++) {
             ll i = ord[j], tx = px + dx[i], ty = py + dy[i];
             if (in_box(tx, ty) && d[DAGGERS][tx][ty] + 1 == d[DAGGERS][px][py] && is_safe(tx, ty)) {
-                if(ans == NO_ANSWER || better(tx, ty))
+                if(ans == NO_ANSWER || better(tx, ty)) {
                     ans = i;
-                if (!silent_mode) {
-                    cerr << "Moving towards bonus" << endl;
+                    if (!silent_mode) {
+                        cerr << "Moving towards dagger" << endl;
+                    }
                 }
             }
         }
@@ -380,10 +382,11 @@ void go_kill() {
             y = py + dy[i];
             if (in_box(x, y) && c[x][y] != '!')
                 if (d[MONSTERS][x][y] < d[MONSTERS][px + dx[ans]][py + dy[ans]]) {
-                    if(ans == NO_ANSWER || better(x, y))
+                    if(ans == NO_ANSWER || better(x, y)) {
                         ans = i;
-                    if (!silent_mode) {
-                        cerr << "Moving towards monster" << endl;
+                        if (!silent_mode) {
+                            cerr << "Moving towards monster" << endl;
+                        }
                     }
                 }
         }
@@ -441,10 +444,11 @@ void run_away() {
             x = px + dx[i];
             y = py + dy[i];
             if (in_box(x, y) && c[x][y] != '!' && safe_cells[map_id][x][y]) {
-                if(ans == NO_ANSWER || better(x, y))
+                if(ans == NO_ANSWER || better(x, y)) {
                     ans = i;
-                if (!silent_mode) {
-                    cerr << "Moving towards safe column " << x << " " << y << endl;
+                    if (!silent_mode) {
+                        cerr << "Moving towards safe cell " << x << " " << y << endl;
+                    }
                 }
             }
         }
@@ -458,10 +462,11 @@ void run_away() {
             y = py + dy[i];
             if (in_box(x, y) && c[x][y] != '!')
                 if (neighbors[x][y] > 1 && is_safe(x, y)) {
-                    if(ans == NO_ANSWER || better(x, y))
+                    if(ans == NO_ANSWER || better(x, y)) {
                         ans = i;
-                    if (!silent_mode) {
-                        cerr << "Moving away from monster to safe cell: " << x << " " << y << endl;
+                        if (!silent_mode) {
+                            cerr << "Moving away from monster to safe cell: " << x << " " << y << endl;
+                        }
                     }
                 }
         }
@@ -477,34 +482,42 @@ void run_away() {
             if (in_box(x, y) && c[x][y] != '!')
                 if (neighbors[x][y] > 1)
                     if (d[MONSTERS][x][y] > mx) {
-                        if(ans == NO_ANSWER || better(x, y))
+                        if(ans == NO_ANSWER || better(x, y)) {
                             ans = i, mx = d[MONSTERS][x][y];
-                        if (!silent_mode) {
-                            cerr << "Moving away from monster: " << x << " " << y << " " << d[MONSTERS][x][y] << " "
-                                 << d[SAFE][x][y] << endl;
+                            if (!silent_mode) {
+                                cerr << "Moving away from monster: " << x << " " << y << " " << d[MONSTERS][x][y] << endl;
+                            }
                         }
                     }
         }
     }
-    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && (ans == STAY && !is_safe(px, py) || ans == NO_ANSWER)) {
-        for (pll monster:monsters) {
-            x = monster.fi;
-            y = monster.se;
-            // upper left
-            if (x == px - 1 && y == py - 1 && c[px - 1][py] != '!' && c[px][py - 1] != '!') {
-                ans = LEFT;
+    if (d[MONSTERS][px][py] == 2 && beast_mode && are_you_sure && (ans == STAY && !is_safe(px, py)) || (ans == NO_ANSWER)) {
+        for(auto &mon : monsters) {
+            x = mon.fi, y = mon.se;
+            for(int j = 0; j < 4; ++j) {
+                ll nx = x + dx[j];
+                ll ny = y + dy[j];
+                if(d[MONSTERS][nx][ny] < d[MONSTERS][x][y] && !safe_cells[map_id][nx][ny]) {
+                    x = nx;
+                    y = ny;
+                    break;
+                }
             }
-            // upper right
-            if (x == px - 1 && y == py + 1 && c[px - 1][py] != '!' && c[px][py + 1] != '!') {
-                ans = UP;
+            mon.fi = x;
+            mon.se = y;
+        }
+        for(int j = 0; j < 4; ++j) {
+            x = px + dx[j];
+            y = py + dy[j];
+            int ok = 0;
+            for(auto &z : monsters) {
+                if(z.fi != x && z.se != y) {
+                    ok ++;
+                }
             }
-            // bottom left
-            if (x == px + 1 && y == py - 1 && c[px + 1][py] != '!' && c[px][py - 1] != '!') {
-                ans = LEFT;
-            }
-            // bottom right
-            if (x == px + 1 && y == py + 1 && c[px + 1][py] != '!' && c[px][py + 1] != '!') {
-                ans = RIGHT;
+            if(ok == monsters.size()) {
+                if(ans == NO_ANSWER || ans == STAY && !is_safe(px,py) || better(x, y))
+                    ans = j;
             }
         }
         if (ans != NO_ANSWER)
