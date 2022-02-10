@@ -1,6 +1,8 @@
 # Eto lyam ewe lyam sverhu
 
+This is our team's code for [alem cup](https://cup.alem.school/) where we won 3rd place. Alem cup is AI programming competition.
 
+[Results](https://cup.alem.school/main/leaderboard)
 
 ## main.py
 
