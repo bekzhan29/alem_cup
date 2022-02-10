@@ -2,6 +2,8 @@
 
 This is our team's code for [alem cup](https://cup.alem.school/) where we won 3rd place. Alem cup is AI programming competition.
 
+This year game's goal was to collect more coins than your opponent. [Example](https://cup.alem.school/main/playback/4d709248-f7e9-487e-9d3e-0c7ab1da95e4)
+
 [Results](https://cup.alem.school/main/leaderboard)
 
 ## main.py
